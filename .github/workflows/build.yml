@@ -1,0 +1,61 @@
+﻿name: Build IPA
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project PocketDeck.xcodeproj \
+            -target PocketDeck \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tail -n 120
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH=$(find build -name "PocketDeck.app" -type d | head -n 1)
+          echo "Found app: $APP_PATH"
+          test -n "$APP_PATH"
+          rm -rf Payload PocketDeck-unsigned.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry PocketDeck-unsigned.ipa Payload
+          ls -lh PocketDeck-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: PocketDeck-ipa
+          path: PocketDeck-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30
