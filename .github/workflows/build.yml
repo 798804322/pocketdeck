@@ -27,8 +27,9 @@ jobs:
         run: xcodegen generate
 
       - name: Build (unsigned)
+        id: build
         run: |
-          set -o pipefail
+          set +e
           xcodebuild \
             -project PocketDeck.xcodeproj \
             -scheme PocketDeck \
@@ -38,7 +39,18 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            build 2>&1 | tail -n 120
+            build > build.log 2>&1
+          status=$?
+          echo "xcodebuild exit code: $status"
+          tail -n 60 build.log
+          if [ $status -ne 0 ]; then
+            echo "----- 编译错误摘要（会显示在运行页面顶部）-----"
+            grep -m 12 "error:" build.log | while IFS= read -r line; do
+              echo "::error title=compile::$line"
+              echo "$line"
+            done
+            exit $status
+          fi
 
       - name: Package unsigned IPA
         run: |
