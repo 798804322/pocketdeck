@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 extension Notification.Name {
     static let deckChanged = Notification.Name("deck.changed")
@@ -237,6 +237,12 @@ final class DeckModel {
             focus(win.id)
             contentTap?(win.id, local)
             post()
+            return
+        }
+
+        // 最后才是桌面图标（窗口永远压在上面）
+        for (index, app) in DeckApp.allCases.enumerated() where desktopIconFrame(index).contains(p) {
+            open(app)
             return
         }
     }
