@@ -25,9 +25,13 @@ final class DeckModel {
     var resizeWindowID: UUID?
     /// 手机「点触」模式：直接点哪儿，大屏点哪儿
     var absoluteMode = false
+    /// 光标速度倍率（手机滑动 1pt，光标移动 cursorSpeed pt）
+    var cursorSpeed: CGFloat = 2.4
 
     private var resizeStart: CGPoint = .zero
     private var resizeStartFrame: CGRect = .zero
+    private var lastTitleClickID: UUID?
+    private var lastTitleClickTime: TimeInterval = 0
 
     /// 输入路由：由当前获得焦点的内容视图注册
     var insertSink: ((String) -> Void)?
@@ -235,6 +239,14 @@ final class DeckModel {
 
             let local = CGPoint(x: p.x - win.frame.minX, y: p.y - win.frame.minY)
             if local.y <= titleBarHeight {
+                let now = Date().timeIntervalSince1970
+                if lastTitleClickID == win.id, now - lastTitleClickTime < 0.45 {
+                    lastTitleClickID = nil
+                    toggleMaximize(win.id)
+                    return
+                }
+                lastTitleClickID = win.id
+                lastTitleClickTime = now
                 focus(win.id)
                 post()
                 return
@@ -421,6 +433,25 @@ final class DeckModel {
     /// 跳转到手机原生 App（跳出桌面，大屏随之变成镜像）
     func launch(_ native: NativeApp) {
         NativeAppLauncher.open(native) { _ in }
+    }
+
+    /// 双指轻点：在窗口之间轮换
+    func cycleWindows() {
+        let visible = windows.filter { !$0.isMinimized }
+        guard visible.count > 1 else { return }
+        guard let current = focusID,
+              let index = visible.firstIndex(where: { $0.id == current }) else {
+            if let first = visible.first { focus(first.id) }
+            return
+        }
+        let next = visible[(index + 1) % visible.count]
+        focus(next.id)
+    }
+
+    /// 把手机剪贴板的内容送进当前输入位置
+    func paste(_ text: String) {
+        guard !text.isEmpty else { return }
+        type(text)
     }
 
     func minimize(_ id: UUID) {

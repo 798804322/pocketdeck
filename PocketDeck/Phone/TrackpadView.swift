@@ -8,6 +8,8 @@ final class TrackpadView: UIView {
     var onEnd: ((CGPoint) -> Void)?
     var onTap: ((CGPoint) -> Void)?
     var onScroll: ((CGFloat) -> Void)?
+    /// 双指轻点（不滑动）
+    var onTwoFingerTap: (() -> Void)?
 
     /// 大屏区域（触控板坐标系里那个等比矩形）
     private(set) var screenFrame: CGRect = .zero
@@ -116,9 +118,11 @@ final class TrackpadView: UIView {
         guard let touch = touches.first else { finish(); return }
         let point = touch.location(in: self)
         let tapped = active && !moved && !multi
+        let twoFingerTap = active && !moved && multi
         finish()
         onEnd?(point)
         if tapped { onTap?(point) }
+        if twoFingerTap { onTwoFingerTap?() }
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {

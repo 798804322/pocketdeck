@@ -64,7 +64,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
             if self.model.absoluteMode {
                 if let target = self.mapToScreen(point) { self.model.moveCursorTo(target) }
             } else {
-                self.model.moveCursor(dx: delta.x * 2.4, dy: delta.y * 2.4)
+                self.model.moveCursor(dx: delta.x * self.model.cursorSpeed,
+                                      dy: delta.y * self.model.cursorSpeed)
             }
         }
         trackpad.onEnd = { [weak self] _ in self?.model.release() }
@@ -76,7 +77,11 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
             self.model.click()
         }
         trackpad.onScroll = { [weak self] dy in self?.model.scroll(dy * 1.6) }
+        trackpad.onTwoFingerTap = { [weak self] in self?.model.cycleWindows() }
         view.addSubview(trackpad)
+
+        statusLabel.isUserInteractionEnabled = true
+        statusLabel.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(cycleSpeed)))
 
         keyboardButton = makeButton(title: "键盘", symbol: "keyboard", action: #selector(showKeyboard))
         startButton = makeButton(title: "开始", symbol: "square.grid.2x2", action: #selector(toggleStart))
@@ -99,6 +104,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
 
         let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 240, height: 44))
         toolbar.items = [
+            UIBarButtonItem(title: "粘贴", style: .plain, target: self, action: #selector(pasteFromPhone)),
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
             UIBarButtonItem(title: "收起键盘", style: .done, target: self, action: #selector(hideKeyboard))
         ]
@@ -178,11 +184,13 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
     }
 
     @objc private func updateStatus() {
+        UIApplication.shared.isIdleTimerDisabled = model.connected
         if model.connected {
             let size = model.screenSize
-            statusLabel.text = "已连接 · \(Int(size.width))×\(Int(size.height))"
+            let speed = String(format: "%.1f", model.cursorSpeed)
+            statusLabel.text = "已连接 · \(Int(size.width))×\(Int(size.height)) · 速度 \(speed)×（点这里调）"
             statusLabel.textColor = UIColor(red: 0.42, green: 0.86, blue: 0.62, alpha: 1)
-            hintLabel.text = "滑动移光标；按住标题栏拖窗口，拖到左右边缘自动分屏；右下角拖拽改大小。"
+            hintLabel.text = "滑动移光标 · 轻点单击 · 双指滚轮 · 双指轻点切窗口；标题栏按住拖动，拖到边缘分屏。"
         } else {
             statusLabel.text = "未检测到外接显示器"
             statusLabel.textColor = UIColor(red: 1.0, green: 0.62, blue: 0.45, alpha: 1)
@@ -193,6 +201,22 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
             : UIColor.white.withAlphaComponent(0.07)
         trackpad.screenAspect = model.screenSize.width / max(model.screenSize.height, 1)
         trackpad.setAbsoluteMode(model.absoluteMode)
+    }
+
+    @objc private func cycleSpeed() {
+        let speeds: [CGFloat] = [1.6, 2.4, 3.6]
+        let index = speeds.firstIndex(where: { abs($0 - model.cursorSpeed) < 0.01 }) ?? 1
+        model.cursorSpeed = speeds[(index + 1) % speeds.count]
+        updateStatus()
+    }
+
+    @objc private func pasteFromPhone() {
+        let text = UIPasteboard.general.string ?? ""
+        if text.isEmpty {
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return
+        }
+        model.paste(text)
     }
 
     // MARK: - 诊断
