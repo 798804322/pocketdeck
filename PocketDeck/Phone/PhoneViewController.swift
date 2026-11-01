@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 import UniformTypeIdentifiers
 
 /// 底部工具栏按钮：图标在上、文字在下
@@ -211,6 +211,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
         let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 240, height: 44))
         toolbar.items = [
+            UIBarButtonItem(title: "⌫ 退格", style: .plain, target: self, action: #selector(backspaceKey)),
             UIBarButtonItem(title: "粘贴", style: .plain, target: self, action: #selector(pasteFromPhone)),
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
             UIBarButtonItem(title: "收起键盘", style: .done, target: self, action: #selector(hideKeyboard))
@@ -365,6 +366,10 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
     @objc private func hideKeyboard() {
         view.endEditing(true)
+    }
+
+    @objc private func backspaceKey() {
+        model.backspace()
     }
 
     @objc private func pasteFromPhone() {
