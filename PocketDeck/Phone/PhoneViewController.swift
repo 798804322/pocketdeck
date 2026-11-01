@@ -85,6 +85,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         becomeFirstResponder()
+        // plist 里的设置可能被构建工具覆盖，这里再强制一次
+        UIApplication.shared.isStatusBarHidden = true
     }
 
     /// 蓝牙键盘：方向键移光标、回车=单击、Esc=关窗、Tab=切窗口
@@ -271,7 +273,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let top = view.safeAreaInsets.top
         let bottom = view.safeAreaInsets.bottom
 
-        let headerY = top + 4
+        let headerY = max(2, top - 8)
         statusDot.frame = CGRect(x: 22, y: headerY + 11, width: 6, height: 6)
         statusLabel.frame = CGRect(x: 36, y: headerY, width: w - 36 - 52, height: 28)
         infoButton.frame = CGRect(x: w - 44, y: headerY, width: 30, height: 28)
@@ -279,7 +281,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let keyboardUp = keyboardHeight > 0
         let rowHeight: CGFloat = 60
         let bottomInset = keyboardUp ? max(bottom, keyboardHeight) : bottom
-        let rowY = h - bottomInset - (keyboardUp ? 6 : 10) - rowHeight
+        let rowY = h - bottomInset - (keyboardUp ? 4 : 6) - rowHeight
         for button in buttons { button.isHidden = keyboardUp }
         let gap: CGFloat = 8
         let buttonWidth = (w - 32 - gap * 4) / 5
@@ -288,7 +290,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
                                   y: rowY, width: buttonWidth, height: rowHeight)
         }
 
-        let padTop = headerY + 32
+        let padTop = headerY + 26
         let padBottom = keyboardUp ? (h - keyboardHeight - 8) : (rowY - 10)
         trackpad.frame = CGRect(x: 14, y: padTop, width: w - 28,
                                 height: max(120, padBottom - padTop))
@@ -320,7 +322,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
             let size = model.screenSize
             let speed = String(format: "%.1f", model.cursorSpeed)
             statusDot.backgroundColor = UIColor(red: 0.42, green: 0.86, blue: 0.62, alpha: 1)
-            statusLabel.text = "已连接 \(Int(size.width))×\(Int(size.height)) · \(speed)× · v\(AppInfo.version)"
+            let phone = UIScreen.main.bounds.size
+            statusLabel.text = "v\(AppInfo.version) · 手机 \(Int(phone.width))×\(Int(phone.height)) · \(speed)×"
             statusLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         } else {
             statusDot.backgroundColor = UIColor(red: 1.0, green: 0.62, blue: 0.45, alpha: 1)
