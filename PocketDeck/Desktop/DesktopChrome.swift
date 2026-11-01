@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 /// 桌面壁纸
 final class WallpaperView: UIView {
@@ -489,7 +489,7 @@ final class NativeStartItem: UIView {
         let side: CGFloat = 36
         tile.frame = CGRect(x: (bounds.width - side) / 2, y: 6, width: side, height: side)
         icon.frame = tile.frame.insetBy(dx: 9, dy: 9)
-        badge.frame = CGRect(x: tile.maxX - 12, y: tile.minY, width: 12, height: 10)
+        badge.frame = CGRect(x: tile.frame.maxX - 12, y: tile.frame.minY, width: 12, height: 10)
         label.frame = CGRect(x: 2, y: 46, width: bounds.width - 4, height: 14)
     }
 }

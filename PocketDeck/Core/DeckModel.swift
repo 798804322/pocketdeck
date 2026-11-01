@@ -228,7 +228,7 @@ final class DeckModel {
         }
 
         for win in Array(windows.reversed()) where !win.isMinimized {
-            guard win.frame.contains(p), let index = windows.firstIndex(where: { $0.id == win.id }) else { continue }
+            guard win.frame.contains(p) else { continue }
             if closeButtonRect(win).contains(p) { close(win.id); return }
             if maximizeButtonRect(win).contains(p) { toggleMaximize(win.id); return }
             if minimizeButtonRect(win).contains(p) { minimize(win.id); return }
@@ -295,8 +295,8 @@ final class DeckModel {
 
     func startMenuFrame() -> CGRect {
         let width: CGFloat = 380
-        // 应用 2 行 + 手机 App 2 行 + 网页 2 行
-        let height: CGFloat = 44 + 2 * 94 + 24 + 148 + 24 + 176 + 30
+        // 应用 2 行 + 手机 App 2 行 + 网页 2 行 = 644
+        let height: CGFloat = 644
         let capped = min(height, max(240, workArea.height - 24))
         return CGRect(x: 8, y: taskbarFrame().minY - capped - 8, width: width, height: capped)
     }
@@ -314,7 +314,7 @@ final class DeckModel {
     func startMenuNativeFrame(_ index: Int) -> CGRect {
         let menu = startMenuFrame()
         let cell = CGSize(width: 82, height: 72)
-        let top = menu.minY + 44 + 2 * 94 + 24
+        let top: CGFloat = menu.minY + 256
         let x = menu.minX + 14 + CGFloat(index % 4) * (cell.width + 4)
         let y = top + CGFloat(index / 4) * (cell.height + 2)
         return CGRect(x: x, y: y, width: cell.width, height: cell.height)
@@ -324,7 +324,7 @@ final class DeckModel {
     func startMenuWebFrame(_ index: Int) -> CGRect {
         let menu = startMenuFrame()
         let cell = CGSize(width: 82, height: 86)
-        let top = menu.minY + 44 + 2 * 94 + 24 + 148 + 24
+        let top: CGFloat = menu.minY + 428
         let x = menu.minX + 14 + CGFloat(index % 4) * (cell.width + 4)
         let y = top + CGFloat(index / 4) * (cell.height + 2)
         return CGRect(x: x, y: y, width: cell.width, height: cell.height)
