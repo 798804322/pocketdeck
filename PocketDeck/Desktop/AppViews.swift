@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -128,7 +128,13 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
     private let uaButton = UIButton(type: .system)
     private let urlLabel = UILabel()
     private let progress = UIView()
-    private let webView = WKWebView()
+    private let webView: WKWebView = {
+        let config = WKWebViewConfiguration()
+        config.allowsInlineMediaPlayback = true
+        config.allowsPictureInPictureMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        return WKWebView(frame: .zero, configuration: config)
+    }()
     private var urlString = "https://www.apple.com.cn"
     private var editingURL = false
     private var urlBuffer = ""
