@@ -317,7 +317,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
             let size = model.screenSize
             let speed = String(format: "%.1f", model.cursorSpeed)
             statusDot.backgroundColor = UIColor(red: 0.42, green: 0.86, blue: 0.62, alpha: 1)
-            statusLabel.text = "已连接 · \(Int(size.width))×\(Int(size.height)) · \(speed)×"
+            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+            statusLabel.text = "已连接 \(Int(size.width))×\(Int(size.height)) · \(speed)× · v\(build)"
             statusLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         } else {
             statusDot.backgroundColor = UIColor(red: 1.0, green: 0.62, blue: 0.45, alpha: 1)
