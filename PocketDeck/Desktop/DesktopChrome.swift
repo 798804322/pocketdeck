@@ -203,9 +203,11 @@ final class StartMenuView: UIView {
 
     private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
     private let appsTitle = UILabel()
+    private let nativeTitle = UILabel()
     private let webTitle = UILabel()
     private let footer = UILabel()
     private var items: [StartItem] = []
+    private var nativeItems: [NativeStartItem] = []
     private var webItems: [WebStartItem] = []
 
     override init(frame: CGRect) {
@@ -230,18 +232,26 @@ final class StartMenuView: UIView {
         appsTitle.textColor = UIColor.white.withAlphaComponent(0.55)
         addSubview(appsTitle)
 
-        webTitle.text = "网页应用 · 点一下就在大屏打开"
+        nativeTitle.text = "手机 App · 点一下跳到原生 App"
+        nativeTitle.font = .systemFont(ofSize: 12, weight: .semibold)
+        nativeTitle.textColor = UIColor(red: 0.45, green: 0.75, blue: 1.0, alpha: 0.85)
+        addSubview(nativeTitle)
+
+        webTitle.text = "网页 · 在大屏窗口里打开"
         webTitle.font = .systemFont(ofSize: 12, weight: .semibold)
         webTitle.textColor = UIColor.white.withAlphaComponent(0.55)
         addSubview(webTitle)
 
-        footer.text = "抖音 / B站 / YouTube 都是网页版，能播"
+        footer.text = "手机 App 会跳出桌面，大屏随之变成镜像"
         footer.font = .systemFont(ofSize: 10)
         footer.textColor = UIColor.white.withAlphaComponent(0.3)
         addSubview(footer)
 
         items = DeckApp.allCases.map { StartItem(app: $0) }
         items.forEach { addSubview($0) }
+
+        nativeItems = NativeAppCatalog.all.map { NativeStartItem(native: $0) }
+        nativeItems.forEach { addSubview($0) }
 
         webItems = WebAppCatalog.all.map { WebStartItem(web: $0) }
         webItems.forEach { addSubview($0) }
@@ -252,11 +262,15 @@ final class StartMenuView: UIView {
     func update(with model: DeckModel) {
         let origin = model.startMenuFrame().origin
         appsTitle.frame = CGRect(x: 14, y: 12, width: 240, height: 18)
-        webTitle.frame = CGRect(x: 14, y: 236, width: 320, height: 18)
+        nativeTitle.frame = CGRect(x: 14, y: 232, width: 340, height: 18)
+        webTitle.frame = CGRect(x: 14, y: 404, width: 320, height: 18)
         footer.frame = CGRect(x: 14, y: bounds.height - 20, width: bounds.width - 28, height: 14)
 
         for (index, item) in items.enumerated() {
             item.frame = model.startMenuItemFrame(index).offsetBy(dx: -origin.x, dy: -origin.y)
+        }
+        for (index, item) in nativeItems.enumerated() {
+            item.frame = model.startMenuNativeFrame(index).offsetBy(dx: -origin.x, dy: -origin.y)
         }
         for (index, item) in webItems.enumerated() {
             item.frame = model.startMenuWebFrame(index).offsetBy(dx: -origin.x, dy: -origin.y)
@@ -427,5 +441,55 @@ final class DesktopIconView: UIView {
         tile.frame = CGRect(x: (bounds.width - side) / 2, y: 4, width: side, height: side)
         icon.frame = tile.frame.insetBy(dx: 13, dy: 13)
         label.frame = CGRect(x: 0, y: 62, width: bounds.width, height: 16)
+    }
+}
+/// 开始菜单里的「手机原生 App」项：点了会跳出桌面
+final class NativeStartItem: UIView {
+
+    private let tile = UIView()
+    private let icon = UIImageView()
+    private let badge = UILabel()
+    private let label = UILabel()
+
+    init(native: NativeApp) {
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+
+        tile.backgroundColor = UIColor(red: 0.22, green: 0.42, blue: 0.85, alpha: 0.55)
+        tile.layer.cornerRadius = 10
+        tile.layer.cornerCurve = .continuous
+        tile.layer.borderWidth = 0.6
+        tile.layer.borderColor = UIColor.white.withAlphaComponent(0.22).cgColor
+        addSubview(tile)
+
+        icon.image = UIImage(systemName: "arrow.up.forward.app")
+        icon.tintColor = .white
+        icon.contentMode = .scaleAspectFit
+        addSubview(icon)
+
+        badge.text = "↗"
+        badge.font = .systemFont(ofSize: 9, weight: .bold)
+        badge.textColor = UIColor.white.withAlphaComponent(0.7)
+        badge.textAlignment = .center
+        addSubview(badge)
+
+        label.text = native.name
+        label.font = .systemFont(ofSize: 10.5)
+        label.textColor = UIColor.white.withAlphaComponent(0.88)
+        label.textAlignment = .center
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let side: CGFloat = 36
+        tile.frame = CGRect(x: (bounds.width - side) / 2, y: 6, width: side, height: side)
+        icon.frame = tile.frame.insetBy(dx: 9, dy: 9)
+        badge.frame = CGRect(x: tile.maxX - 12, y: tile.minY, width: 12, height: 10)
+        label.frame = CGRect(x: 2, y: 46, width: bounds.width - 4, height: 14)
     }
 }

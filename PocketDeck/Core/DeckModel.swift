@@ -189,6 +189,11 @@ final class DeckModel {
                 open(app)
                 return
             }
+            for (index, native) in NativeAppCatalog.all.enumerated() where startMenuNativeFrame(index).contains(p) {
+                startMenuOpen = false
+                launch(native)
+                return
+            }
             for (index, web) in WebAppCatalog.all.enumerated() where startMenuWebFrame(index).contains(p) {
                 startMenuOpen = false
                 open(.browser, url: web.url, portrait: web.portrait)
@@ -290,9 +295,9 @@ final class DeckModel {
 
     func startMenuFrame() -> CGRect {
         let width: CGFloat = 380
-        let webRows = ceil(Double(WebAppCatalog.all.count) / 4.0)
-        let height = 44 + 2 * 94 + 30 + CGFloat(webRows) * 88 + 30
-        let capped = min(height, max(240, workArea.height - 30))
+        // 应用 2 行 + 手机 App 2 行 + 网页 2 行
+        let height: CGFloat = 44 + 2 * 94 + 24 + 148 + 24 + 176 + 30
+        let capped = min(height, max(240, workArea.height - 24))
         return CGRect(x: 8, y: taskbarFrame().minY - capped - 8, width: width, height: capped)
     }
 
@@ -305,11 +310,21 @@ final class DeckModel {
         return CGRect(x: x, y: y, width: cell.width, height: cell.height)
     }
 
+    /// 手机原生 App（4 列，点了会跳出桌面）
+    func startMenuNativeFrame(_ index: Int) -> CGRect {
+        let menu = startMenuFrame()
+        let cell = CGSize(width: 82, height: 72)
+        let top = menu.minY + 44 + 2 * 94 + 24
+        let x = menu.minX + 14 + CGFloat(index % 4) * (cell.width + 4)
+        let y = top + CGFloat(index / 4) * (cell.height + 2)
+        return CGRect(x: x, y: y, width: cell.width, height: cell.height)
+    }
+
     /// 网页应用（4 列）
     func startMenuWebFrame(_ index: Int) -> CGRect {
         let menu = startMenuFrame()
         let cell = CGSize(width: 82, height: 86)
-        let top = menu.minY + 44 + 2 * 94 + 30
+        let top = menu.minY + 44 + 2 * 94 + 24 + 148 + 24
         let x = menu.minX + 14 + CGFloat(index % 4) * (cell.width + 4)
         let y = top + CGFloat(index / 4) * (cell.height + 2)
         return CGRect(x: x, y: y, width: cell.width, height: cell.height)
@@ -401,6 +416,11 @@ final class DeckModel {
     func toggleStartMenu() {
         startMenuOpen.toggle()
         post()
+    }
+
+    /// 跳转到手机原生 App（跳出桌面，大屏随之变成镜像）
+    func launch(_ native: NativeApp) {
+        NativeAppLauncher.open(native) { _ in }
     }
 
     func minimize(_ id: UUID) {
