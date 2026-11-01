@@ -1,31 +1,33 @@
 import UIKit
 
-/// 手机上的触控板
+/// 手机触控板：单指移动光标 / 双指滚动 / 轻点单击 / 按住拖动窗口 / 绝对点触
 final class TrackpadView: UIView {
 
-    var onMove: ((CGPoint) -> Void)?
-    var onTap: (() -> Void)?
+    var onBegin: ((CGPoint) -> Void)?
+    var onMove: ((CGPoint, CGPoint) -> Void)?
+    var onEnd: ((CGPoint) -> Void)?
+    var onTap: ((CGPoint) -> Void)?
+    var onScroll: ((CGFloat) -> Void)?
+
+    private var last: CGPoint = .zero
+    private var start: CGPoint = .zero
+    private var active = false
+    private var moved = false
+    private var multi = false
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         backgroundColor = UIColor.white.withAlphaComponent(0.045)
-        layer.cornerRadius = 26
+        layer.cornerRadius = 24
         layer.cornerCurve = .continuous
         layer.borderWidth = 1
         layer.borderColor = UIColor.white.withAlphaComponent(0.10).cgColor
-        isMultipleTouchEnabled = false
-
-        let pan = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
-        pan.maximumNumberOfTouches = 1
-        addGestureRecognizer(pan)
-
-        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap))
-        addGestureRecognizer(tap)
+        isMultipleTouchEnabled = true
 
         let hint = UILabel()
-        hint.text = "滑动移动光标 · 轻点单击"
+        hint.text = "滑动移光标 · 轻点单击 · 双指滚动"
         hint.font = .systemFont(ofSize: 12)
-        hint.textColor = UIColor.white.withAlphaComponent(0.28)
+        hint.textColor = UIColor.white.withAlphaComponent(0.26)
         hint.textAlignment = .center
         hint.isUserInteractionEnabled = false
         hint.tag = 77
@@ -39,13 +41,50 @@ final class TrackpadView: UIView {
         viewWithTag(77)?.frame = CGRect(x: 0, y: bounds.midY - 10, width: bounds.width, height: 20)
     }
 
-    @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
-        let translation = gesture.translation(in: self)
-        gesture.setTranslation(.zero, in: self)
-        onMove?(translation)
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let point = touch.location(in: self)
+        if active { return }
+        active = true
+        moved = false
+        last = point
+        start = point
+        multi = (event?.allTouches?.count ?? 1) >= 2
+        if !multi { onBegin?(point) }
     }
 
-    @objc private func handleTap() {
-        onTap?()
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { return }
+        let point = touch.location(in: self)
+        let fingers = event?.allTouches?.count ?? 1
+
+        if fingers >= 2 || multi {
+            multi = true
+            onScroll?(last.y - point.y)
+            last = point
+            return
+        }
+
+        let delta = CGPoint(x: point.x - last.x, y: point.y - last.y)
+        last = point
+        if hypot(point.x - start.x, point.y - start.y) > 5 { moved = true }
+        onMove?(point, delta)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard let touch = touches.first else { finish() ; return }
+        let point = touch.location(in: self)
+        let tapped = active && !moved && !multi
+        finish()
+        onEnd?(point)
+        if tapped { onTap?(point) }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        finish()
+    }
+
+    private func finish() {
+        active = false
     }
 }

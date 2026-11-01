@@ -9,6 +9,7 @@ final class DesktopSceneDelegate: NSObject, UIWindowSceneDelegate {
                willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
+        DeckModel.shared.markExternalScene()
         let w = UIWindow(windowScene: windowScene)
         w.backgroundColor = .black
         w.rootViewController = DesktopViewController()

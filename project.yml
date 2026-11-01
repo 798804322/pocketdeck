@@ -1,6 +1,5 @@
 ﻿name: PocketDeck
 options:
-  objectVersion: 60
   bundleIdPrefix: com.pocketdeck
   deploymentTarget:
     iOS: "15.0"

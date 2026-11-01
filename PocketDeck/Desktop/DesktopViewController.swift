@@ -1,11 +1,11 @@
-import UIKit
+﻿import UIKit
 
 final class DesktopViewController: UIViewController {
 
     private let model = DeckModel.shared
     private let wallpaper = WallpaperView()
-    private let menuBar = MenuBarView()
-    private let dock = DockView()
+    private let taskbar = TaskbarView()
+    private let startMenu = StartMenuView()
     private let cursor = CursorView()
     private var windowViews: [UUID: DeckWindowView] = [:]
     private var timer: Timer?
@@ -23,25 +23,44 @@ final class DesktopViewController: UIViewController {
         view.backgroundColor = .black
 
         view.addSubview(wallpaper)
-        view.addSubview(menuBar)
-        view.addSubview(dock)
+        view.addSubview(taskbar)
+        view.addSubview(startMenu)
         view.addSubview(cursor)
+        startMenu.isHidden = true
+
+        model.contentTap = { [weak self] id, point in
+            self?.windowViews[id]?.handleTap(at: point)
+        }
+        model.contentFocus = { [weak self] id in
+            self?.windowViews[id]?.content?.activate()
+        }
 
         NotificationCenter.default.addObserver(self, selector: #selector(sync),
                                                name: .deckChanged, object: nil)
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        view.addGestureRecognizer(tap)
 
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.tick()
         }
 
         model.reportScreen(view.bounds.size)
-        layout()
+        sync()
     }
 
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         model.reportScreen(view.bounds.size)
-        layout()
+        layoutAll()
+    }
+
+    /// 外接屏上的真实触摸（显示器如果能把触控当鼠标上报，这里会收到）
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        let point = gesture.location(in: view)
+        model.registerTouch()
+        model.clickAt(point)
     }
 
     @objc private func sync() {
@@ -49,36 +68,43 @@ final class DesktopViewController: UIViewController {
         if abs(size.width - model.screenSize.width) > 2 || abs(size.height - model.screenSize.height) > 2 {
             model.reportScreen(size)
         }
-        layout()
+        layoutAll()
     }
 
     private func tick() {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "M月d日 HH:mm"
-        menuBar.setClock(formatter.string(from: Date()))
-        for wv in windowViews.values { wv.updateClock() }
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "M/d"
+        taskbar.update(with: model,
+                       time: timeFormatter.string(from: Date()),
+                       date: dateFormatter.string(from: Date()))
     }
 
-    private func layout() {
+    private func layoutAll() {
         wallpaper.frame = view.bounds
-        menuBar.frame = CGRect(x: 0, y: 0, width: view.bounds.width, height: model.menuBarHeight)
-        dock.frame = model.dockBackgroundFrame()
-        dock.layout(with: model)
+        taskbar.frame = model.taskbarFrame()
+        taskbar.update(with: model, time: currentTime(), date: currentDate())
+        startMenu.frame = model.startMenuFrame()
+        startMenu.update(with: model)
+        startMenu.isHidden = !model.startMenuOpen
         cursor.frame = CGRect(x: model.cursor.x - 3, y: model.cursor.y - 2, width: 22, height: 28)
 
         var alive = Set<UUID>()
         for win in model.windows {
             alive.insert(win.id)
-            let wv: DeckWindowView
+            let windowView: DeckWindowView
             if let existing = windowViews[win.id] {
-                wv = existing
+                windowView = existing
             } else {
-                wv = DeckWindowView(deckWindow: win, model: model)
-                windowViews[win.id] = wv
-                view.addSubview(wv)
+                windowView = DeckWindowView(deckWindow: win)
+                windowViews[win.id] = windowView
+                view.addSubview(windowView)
             }
-            wv.frame = win.frame
-            wv.refresh()
+            windowView.isHidden = win.isMinimized
+            windowView.frame = win.frame
+            windowView.applyTitle(model.title(for: win))
+            windowView.refresh()
         }
 
         for id in Array(windowViews.keys) where !alive.contains(id) {
@@ -86,11 +112,27 @@ final class DesktopViewController: UIViewController {
             windowViews.removeValue(forKey: id)
         }
 
-        for win in model.windows {
-            if let wv = windowViews[win.id] { view.bringSubviewToFront(wv) }
+        for win in model.windows where !win.isMinimized {
+            if let windowView = windowViews[win.id] { view.bringSubviewToFront(windowView) }
         }
-        view.bringSubviewToFront(dock)
-        view.bringSubviewToFront(menuBar)
+        view.bringSubviewToFront(taskbar)
+        view.bringSubviewToFront(startMenu)
         view.bringSubviewToFront(cursor)
+
+        if let focusID = model.focusID, let windowView = windowViews[focusID] {
+            windowView.content?.activate()
+        }
+    }
+
+    private func currentTime() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: Date())
+    }
+
+    private func currentDate() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "M/d"
+        return formatter.string(from: Date())
     }
 }

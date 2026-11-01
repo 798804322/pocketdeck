@@ -1,6 +1,6 @@
-import UIKit
+﻿import UIKit
 
-/// 桌面壁纸：深色渐变 + 两团柔光
+/// 桌面壁纸
 final class WallpaperView: UIView {
 
     private let gradient = CAGradientLayer()
@@ -11,10 +11,10 @@ final class WallpaperView: UIView {
         super.init(frame: frame)
         isUserInteractionEnabled = false
         gradient.colors = [
-            UIColor(red: 0.05, green: 0.06, blue: 0.11, alpha: 1).cgColor,
-            UIColor(red: 0.09, green: 0.10, blue: 0.20, alpha: 1).cgColor,
-            UIColor(red: 0.16, green: 0.11, blue: 0.22, alpha: 1).cgColor,
-            UIColor(red: 0.04, green: 0.12, blue: 0.15, alpha: 1).cgColor
+            UIColor(red: 0.04, green: 0.05, blue: 0.09, alpha: 1).cgColor,
+            UIColor(red: 0.07, green: 0.09, blue: 0.18, alpha: 1).cgColor,
+            UIColor(red: 0.13, green: 0.09, blue: 0.20, alpha: 1).cgColor,
+            UIColor(red: 0.03, green: 0.10, blue: 0.13, alpha: 1).cgColor
         ]
         gradient.startPoint = CGPoint(x: 0, y: 0)
         gradient.endPoint = CGPoint(x: 1, y: 1)
@@ -22,10 +22,8 @@ final class WallpaperView: UIView {
 
         blobA.backgroundColor = UIColor(red: 0.35, green: 0.32, blue: 0.95, alpha: 0.30)
         blobB.backgroundColor = UIColor(red: 0.15, green: 0.55, blue: 0.60, alpha: 0.22)
-        [blobA, blobB].forEach {
-            $0.layer.cornerRadius = 0
-            addSubview($0)
-        }
+        addSubview(blobA)
+        addSubview(blobB)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -36,71 +34,74 @@ final class WallpaperView: UIView {
         let side = max(bounds.width, bounds.height) * 0.9
         blobA.frame = CGRect(x: -side * 0.35, y: -side * 0.45, width: side, height: side)
         blobA.layer.cornerRadius = side / 2
-        blobB.frame = CGRect(x: bounds.width - side * 0.55, y: bounds.height - side * 0.7, width: side, height: side)
+        blobB.frame = CGRect(x: bounds.width - side * 0.55,
+                             y: bounds.height - side * 0.7, width: side, height: side)
         blobB.layer.cornerRadius = side / 2
     }
 }
 
-/// 顶部菜单栏
-final class MenuBarView: UIView {
+/// 任务栏上的一个窗口按钮
+final class TaskbarButton: UIView {
 
-    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemUltraThinMaterialDark))
-    private let titleLabel = UILabel()
-    private let clockLabel = UILabel()
+    private let icon = UIImageView()
+    private let title = UILabel()
+    private let running = UIView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        clipsToBounds = true
-        addSubview(blur)
-        blur.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            blur.leadingAnchor.constraint(equalTo: leadingAnchor),
-            blur.trailingAnchor.constraint(equalTo: trailingAnchor),
-            blur.topAnchor.constraint(equalTo: topAnchor),
-            blur.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
+        layer.cornerRadius = 6
+        layer.cornerCurve = .continuous
+        backgroundColor = UIColor.white.withAlphaComponent(0.05)
 
-        titleLabel.text = "PocketDeck"
-        titleLabel.font = .systemFont(ofSize: 13, weight: .semibold)
-        titleLabel.textColor = .white
-        addSubview(titleLabel)
+        icon.contentMode = .scaleAspectFit
+        icon.tintColor = .white
+        addSubview(icon)
 
-        clockLabel.font = .monospacedDigitSystemFont(ofSize: 13, weight: .regular)
-        clockLabel.textColor = UIColor.white.withAlphaComponent(0.85)
-        clockLabel.textAlignment = .right
-        addSubview(clockLabel)
+        title.font = .systemFont(ofSize: 12, weight: .medium)
+        title.textColor = UIColor.white.withAlphaComponent(0.9)
+        title.lineBreakMode = .byTruncatingTail
+        addSubview(title)
 
-        let line = UIView()
-        line.backgroundColor = UIColor.white.withAlphaComponent(0.08)
-        line.tag = 99
-        addSubview(line)
+        running.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+        running.layer.cornerRadius = 1.5
+        addSubview(running)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func setClock(_ text: String) { clockLabel.text = text }
+    func configure(app: DeckApp, text: String, isActive: Bool) {
+        icon.image = UIImage(systemName: app.symbol)
+        title.text = text
+        backgroundColor = UIColor.white.withAlphaComponent(isActive ? 0.18 : 0.05)
+        running.isHidden = false
+        running.backgroundColor = UIColor.white.withAlphaComponent(isActive ? 1.0 : 0.35)
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        titleLabel.frame = CGRect(x: 18, y: 0, width: 220, height: bounds.height)
-        clockLabel.frame = CGRect(x: bounds.width - 200, y: 0, width: 182, height: bounds.height)
-        viewWithTag(99)?.frame = CGRect(x: 0, y: bounds.height - 0.5, width: bounds.width, height: 0.5)
+        let h = bounds.height
+        icon.frame = CGRect(x: 8, y: (h - 18) / 2, width: 18, height: 18)
+        running.frame = CGRect(x: 8, y: h - 4, width: max(0, bounds.width - 16), height: 3)
+        let textX: CGFloat = 32
+        title.frame = CGRect(x: textX, y: 0, width: max(0, bounds.width - textX - 8), height: h)
     }
 }
 
-/// 底部程序坞
-final class DockView: UIView {
+/// Windows 风格任务栏
+final class TaskbarView: UIView {
 
-    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterialDark))
-    private var items: [DockItemView] = []
+    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
+    private let startButton = UIView()
+    private let startGlyph = UIView()
+    private var buttons: [TaskbarButton] = []
+    private let timeLabel = UILabel()
+    private let dateLabel = UILabel()
+    private let touchLabel = UILabel()
+    private let showDesktop = UIView()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        layer.cornerRadius = 20
-        layer.cornerCurve = .continuous
-        clipsToBounds = true
-        layer.borderWidth = 0.8
-        layer.borderColor = UIColor.white.withAlphaComponent(0.10).cgColor
+        clipsToBounds = false
 
         addSubview(blur)
         blur.translatesAutoresizingMaskIntoConstraints = false
@@ -111,65 +112,241 @@ final class DockView: UIView {
             blur.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
 
-        items = DeckApp.allCases.map { DockItemView(app: $0) }
-        items.forEach { addSubview($0) }
+        startButton.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        startButton.layer.cornerRadius = 6
+        startButton.layer.cornerCurve = .continuous
+        addSubview(startButton)
+
+        for (row, col) in [(0, 0), (0, 1), (1, 0), (1, 1)] {
+            let square = UIView()
+            square.backgroundColor = UIColor(red: 0.36, green: 0.56, blue: 1.0, alpha: 1)
+            square.tag = 500 + row * 2 + col
+            startGlyph.addSubview(square)
+        }
+        startButton.addSubview(startGlyph)
+
+        timeLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        timeLabel.textColor = .white
+        timeLabel.textAlignment = .right
+        timeLabel.tag = 601
+        addSubview(timeLabel)
+
+        dateLabel.font = .systemFont(ofSize: 11)
+        dateLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        dateLabel.textAlignment = .right
+        addSubview(dateLabel)
+
+        touchLabel.font = .systemFont(ofSize: 10)
+        touchLabel.textColor = UIColor.white.withAlphaComponent(0.35)
+        addSubview(touchLabel)
+
+        showDesktop.backgroundColor = UIColor.white.withAlphaComponent(0.12)
+        showDesktop.layer.cornerRadius = 2
+        addSubview(showDesktop)
+
+        let topLine = UIView()
+        topLine.backgroundColor = UIColor.white.withAlphaComponent(0.10)
+        topLine.frame = CGRect(x: 0, y: 0, width: 10000, height: 0.5)
+        addSubview(topLine)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
-    func layout(with model: DeckModel) {
-        let pad = model.dockPadding
-        let size = model.dockItemSize
-        let gap = model.dockGap
-        let inner = CGRect(x: pad, y: pad, width: bounds.width - pad * 2, height: bounds.height - pad * 2)
+    func update(with model: DeckModel, time: String, date: String) {
+        let barTop = model.taskbarFrame().minY
+        let localStart = model.startButtonFrame().offsetBy(dx: 0, dy: -barTop)
+
+        startButton.frame = localStart
+        startGlyph.frame = CGRect(x: 11, y: 9, width: 18, height: 18)
+        for (index, square) in startGlyph.subviews.enumerated() {
+            let col = index % 2
+            let row = index / 2
+            square.frame = CGRect(x: CGFloat(col) * 10, y: CGFloat(row) * 10, width: 8, height: 8)
+            square.layer.cornerRadius = 1.5
+        }
+
+        // 窗口按钮
+        while buttons.count < model.windows.count {
+            let button = TaskbarButton()
+            buttons.append(button)
+            addSubview(button)
+        }
+        for (index, button) in buttons.enumerated() {
+            if index < model.windows.count {
+                let win = model.windows[index]
+                button.isHidden = false
+                let rect = model.windowButtonFrame(index)
+                button.frame = rect.offsetBy(dx: 0, dy: -barTop)
+                let label = model.title(for: win)
+                button.configure(app: win.app, text: label, isActive: win.id == model.focusID && !win.isMinimized)
+            } else {
+                button.isHidden = true
+            }
+        }
+
+        timeLabel.text = time
+        dateLabel.text = date
+        touchLabel.text = "触 \(model.touchCount)"
+        touchLabel.sizeToFit()
+
+        let tray = model.trayFrame().offsetBy(dx: 0, dy: -barTop)
+        timeLabel.frame = CGRect(x: tray.minX, y: tray.minY + 9, width: tray.width - 8, height: 16)
+        dateLabel.frame = CGRect(x: tray.minX, y: tray.minY + 24, width: tray.width - 8, height: 14)
+        touchLabel.frame = CGRect(x: tray.minX - 40, y: tray.minY + 16, width: 40, height: 14)
+
+        showDesktop.frame = model.showDesktopFrame().offsetBy(dx: 0, dy: -barTop)
+    }
+}
+
+/// 开始菜单
+final class StartMenuView: UIView {
+
+    private let blur = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
+    private let appsTitle = UILabel()
+    private let webTitle = UILabel()
+    private let footer = UILabel()
+    private var items: [StartItem] = []
+    private var webItems: [WebStartItem] = []
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        layer.cornerRadius = 10
+        layer.cornerCurve = .continuous
+        clipsToBounds = true
+        layer.borderWidth = 0.8
+        layer.borderColor = UIColor.white.withAlphaComponent(0.12).cgColor
+
+        addSubview(blur)
+        blur.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            blur.leadingAnchor.constraint(equalTo: leadingAnchor),
+            blur.trailingAnchor.constraint(equalTo: trailingAnchor),
+            blur.topAnchor.constraint(equalTo: topAnchor),
+            blur.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+
+        appsTitle.text = "应用"
+        appsTitle.font = .systemFont(ofSize: 12, weight: .semibold)
+        appsTitle.textColor = UIColor.white.withAlphaComponent(0.55)
+        addSubview(appsTitle)
+
+        webTitle.text = "网页应用 · 点一下就在大屏打开"
+        webTitle.font = .systemFont(ofSize: 12, weight: .semibold)
+        webTitle.textColor = UIColor.white.withAlphaComponent(0.55)
+        addSubview(webTitle)
+
+        footer.text = "抖音 / B站 / YouTube 都是网页版，能播"
+        footer.font = .systemFont(ofSize: 10)
+        footer.textColor = UIColor.white.withAlphaComponent(0.3)
+        addSubview(footer)
+
+        items = DeckApp.allCases.map { StartItem(app: $0) }
+        items.forEach { addSubview($0) }
+
+        webItems = WebAppCatalog.all.map { WebStartItem(web: $0) }
+        webItems.forEach { addSubview($0) }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    func update(with model: DeckModel) {
+        let origin = model.startMenuFrame().origin
+        appsTitle.frame = CGRect(x: 14, y: 12, width: 240, height: 18)
+        webTitle.frame = CGRect(x: 14, y: 236, width: 320, height: 18)
+        footer.frame = CGRect(x: 14, y: bounds.height - 20, width: bounds.width - 28, height: 14)
+
         for (index, item) in items.enumerated() {
-            item.frame = CGRect(x: inner.minX + CGFloat(index) * (size + gap),
-                                y: inner.minY,
-                                width: size,
-                                height: size)
+            item.frame = model.startMenuItemFrame(index).offsetBy(dx: -origin.x, dy: -origin.y)
+        }
+        for (index, item) in webItems.enumerated() {
+            item.frame = model.startMenuWebFrame(index).offsetBy(dx: -origin.x, dy: -origin.y)
         }
     }
 }
 
-final class DockItemView: UIView {
+final class StartItem: UIView {
 
     let app: DeckApp
+    private let tile = UIView()
+    private let icon = UIImageView()
+    private let label = UILabel()
 
     init(app: DeckApp) {
         self.app = app
         super.init(frame: .zero)
         isUserInteractionEnabled = false
 
-        let tile = UIView()
-        tile.layer.cornerRadius = 15
-        tile.layer.cornerCurve = .continuous
         tile.backgroundColor = app.tint
-        tile.frame = CGRect(x: 6, y: 6, width: 54, height: 54)
-        tile.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        tile.layer.cornerRadius = 13
+        tile.layer.cornerCurve = .continuous
         addSubview(tile)
 
-        let icon = UIImageView(image: UIImage(systemName: app.symbol))
+        icon.image = UIImage(systemName: app.symbol)
         icon.tintColor = .white
         icon.contentMode = .scaleAspectFit
-        icon.frame = CGRect(x: 17, y: 17, width: 32, height: 32)
-        icon.autoresizingMask = [.flexibleTopMargin, .flexibleBottomMargin, .flexibleLeftMargin, .flexibleRightMargin]
         addSubview(icon)
 
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.35
-        layer.shadowRadius = 8
-        layer.shadowOffset = CGSize(width: 0, height: 4)
+        label.text = app.title
+        label.font = .systemFont(ofSize: 11)
+        label.textColor = UIColor.white.withAlphaComponent(0.88)
+        label.textAlignment = .center
+        addSubview(label)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        subviews.first?.frame = bounds.insetBy(dx: 6, dy: 6)
-        subviews.last?.frame = bounds.insetBy(dx: 17, dy: 17)
+        let side: CGFloat = 44
+        tile.frame = CGRect(x: (bounds.width - side) / 2, y: 8, width: side, height: side)
+        icon.frame = tile.frame.insetBy(dx: 11, dy: 11)
+        label.frame = CGRect(x: 0, y: 58, width: bounds.width, height: 16)
     }
 }
 
+/// 开始菜单里的网页应用
+final class WebStartItem: UIView {
+
+    private let tile = UIView()
+    private let initials = UILabel()
+    private let label = UILabel()
+
+    init(web: WebApp) {
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+
+        tile.backgroundColor = web.tint
+        tile.layer.cornerRadius = 11
+        tile.layer.cornerCurve = .continuous
+        tile.layer.borderWidth = 0.6
+        tile.layer.borderColor = UIColor.white.withAlphaComponent(0.16).cgColor
+        addSubview(tile)
+
+        initials.text = web.initials
+        initials.font = .systemFont(ofSize: 15, weight: .bold)
+        initials.textColor = .white
+        initials.textAlignment = .center
+        addSubview(initials)
+
+        label.text = web.name
+        label.font = .systemFont(ofSize: 10.5)
+        label.textColor = UIColor.white.withAlphaComponent(0.85)
+        label.textAlignment = .center
+        label.adjustsFontSizeToFitWidth = true
+        label.minimumScaleFactor = 0.7
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let side: CGFloat = 42
+        tile.frame = CGRect(x: (bounds.width - side) / 2, y: 6, width: side, height: side)
+        initials.frame = tile.frame
+        label.frame = CGRect(x: 2, y: 52, width: bounds.width - 4, height: 14)
+    }
+}
 /// 鼠标指针
 final class CursorView: UIView {
 
@@ -196,7 +373,6 @@ final class CursorView: UIView {
         path.addLine(to: CGPoint(x: 11.5, y: 15))
         path.addLine(to: CGPoint(x: 19, y: 14.5))
         path.close()
-
         UIColor.white.setFill()
         path.fill()
         UIColor.black.withAlphaComponent(0.7).setStroke()

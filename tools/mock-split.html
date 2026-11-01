@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>PocketDeck v4 分屏</title>
+<style>
+  *{box-sizing:border-box;margin:0}
+  html,body{width:1600px;height:900px;overflow:hidden;font-family:-apple-system,"SF Pro Text","PingFang SC",sans-serif}
+  body{background:#0b0d14;color:#fff}
+  .wall{position:fixed;inset:0;background:
+    radial-gradient(60% 55% at 12% 8%, rgba(90,80,220,.50), transparent 70%),
+    radial-gradient(55% 55% at 92% 15%, rgba(30,140,160,.32), transparent 70%),
+    radial-gradient(60% 60% at 45% 105%, rgba(110,60,140,.38), transparent 70%),
+    linear-gradient(135deg,#0a0b12,#0d1020 45%,#0a1118)}
+  .win{position:fixed;top:0;height:854px;border-radius:10px;overflow:hidden;
+    background:rgba(26,28,38,.97);border:.8px solid rgba(255,255,255,.13);
+    box-shadow:0 26px 60px -16px rgba(0,0,0,.85)}
+  .bar{height:36px;display:flex;align-items:center;gap:8px;padding-left:12px;
+    background:rgba(255,255,255,.05);border-bottom:.5px solid rgba(255,255,255,.08)}
+  .bar .ic{width:14px;height:14px;border-radius:3px;display:grid;place-items:center;font-size:9px}
+  .bar .t{font-size:12.5px;font-weight:600;color:rgba(255,255,255,.92)}
+  .bar .sp{flex:1}
+  .wb{display:flex;height:100%;margin-left:auto}
+  .wb span{width:46px;height:100%;display:grid;place-items:center;color:rgba(255,255,255,.9);font-size:11px;background:rgba(255,255,255,.045)}
+  .wb span.x{background:rgba(184,36,26,.78)}
+  .btool{height:40px;display:flex;align-items:center;gap:8px;padding:0 10px;background:rgba(255,255,255,.03)}
+  .btool .b{width:26px;height:26px;border-radius:5px;display:grid;place-items:center;color:rgba(255,255,255,.8);font-size:12px}
+  .url{flex:1;height:26px;border-radius:6px;background:rgba(255,255,255,.06);display:flex;align-items:center;
+    padding:0 10px;font-size:11.5px;color:rgba(255,255,255,.5)}
+  .go{width:46px;height:26px;border-radius:6px;background:rgba(255,255,255,.1);display:grid;place-items:center;font-size:11.5px}
+  .page{padding:26px 30px;background:#fff;color:#1b1f27;height:calc(100% - 76px);overflow:hidden}
+  .page h1{font-size:25px;margin-bottom:10px}
+  .page p{font-size:14px;line-height:1.85;color:#4a5263;margin-bottom:8px}
+  .note{padding:18px 22px;font-size:18px;line-height:1.75;color:#eceef5}
+  .note .dim{color:rgba(255,255,255,.45);font-size:14.5px}
+  .grip{position:absolute;right:4px;bottom:4px;width:16px;height:16px;opacity:.5}
+  /* 分屏提示 */
+  .snap{position:fixed;left:50%;top:14px;transform:translateX(-50%);font-size:11.5px;
+    color:rgba(255,255,255,.55);background:rgba(0,0,0,.35);padding:5px 12px;border-radius:20px}
+  /* 任务栏 */
+  .task{position:fixed;left:0;right:0;bottom:0;height:46px;display:flex;align-items:center;
+    gap:4px;padding:0 8px;background:rgba(18,20,30,.82);backdrop-filter:blur(24px);
+    border-top:.5px solid rgba(255,255,255,.1)}
+  .start{width:40px;height:34px;border-radius:6px;background:rgba(255,255,255,.06);display:grid;
+    grid-template-columns:8px 8px;grid-template-rows:8px 8px;gap:2px;place-content:center}
+  .start i{background:#5b8fff;border-radius:1.5px}
+  .tb{display:flex;align-items:center;gap:7px;height:36px;padding:0 10px;border-radius:6px;
+    background:rgba(255,255,255,.05);font-size:12px;color:rgba(255,255,255,.9);min-width:130px}
+  .tb.on{background:rgba(255,255,255,.18)}
+  .tb .d{width:16px;height:16px;border-radius:3px}
+  .spacer{flex:1}
+  .tray{text-align:right;font-size:11.5px;line-height:1.25;color:rgba(255,255,255,.85);padding-right:10px}
+  .tray small{color:rgba(255,255,255,.45);font-size:10px}
+  .tag{position:fixed;right:18px;bottom:58px;font-size:10.5px;color:rgba(255,255,255,.25)}
+</style>
+</head>
+<body>
+<div class="wall"></div>
+<div class="snap">把窗口拖到屏幕左/右边缘 → 自动占半屏（Windows 同款分屏）</div>
+
+<!-- 左半屏 -->
+<div class="win" style="left:0;width:800px">
+  <div class="bar"><span class="ic" style="background:#3b6ff5">🌐</span><span class="t">bilibili.com</span><span class="sp"></span>
+    <div class="wb"><span>–</span><span>□</span><span class="x">✕</span></div></div>
+  <div class="btool"><span class="b">‹</span><span class="b">›</span><span class="b">⟳</span>
+    <span class="url">https://www.bilibili.com</span><span class="go">网址</span></div>
+  <div class="page">
+    <h1>左边看视频</h1>
+    <p>B站、YouTube、抖音网页版都能在窗口里播。</p>
+    <p>窗口右边随便拖，两个窗口可以并排用。</p>
+  </div>
+  <svg class="grip" viewBox="0 0 16 16"><path d="M14 2 L2 14 M14 7 L7 14 M14 12 L12 14" stroke="#fff" stroke-width="1"/></svg>
+</div>
+
+<!-- 右半屏 -->
+<div class="win" style="left:800px;width:800px">
+  <div class="bar"><span class="ic" style="background:#f0a01e">📝</span><span class="t">笔记 · 欢迎</span><span class="sp"></span>
+    <div class="wb"><span>–</span><span>□</span><span class="x">✕</span></div></div>
+  <div class="note">
+    右边写东西。<br><br>
+    标题栏按住拖 = 移动<br>
+    拖到左右边缘 = 自动分屏<br>
+    右下角三道杠拖 = 改大小<br><br>
+    <span class="dim">任务栏上每个窗口一个按钮，点谁谁到前面。</span>
+  </div>
+  <svg class="grip" viewBox="0 0 16 16"><path d="M14 2 L2 14 M14 7 L7 14 M14 12 L12 14" stroke="#fff" stroke-width="1"/></svg>
+</div>
+
+<div class="task">
+  <div class="start"><i></i><i></i><i></i><i></i></div>
+  <div class="tb"><span class="d" style="background:#3b6ff5"></span>bilibili.com</div>
+  <div class="tb on"><span class="d" style="background:#f0a01e"></span>笔记 · 欢迎</div>
+  <div class="spacer"></div>
+  <div class="tray">21:04<br><small>10/31</small></div>
+</div>
+
+<div class="tag">设计稿 · 实际由 Swift 在外接屏上渲染</div>
+</body>
+</html>
