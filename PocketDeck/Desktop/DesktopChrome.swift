@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 
 /// 桌面壁纸
 final class WallpaperView: UIView {
@@ -177,7 +177,7 @@ final class TaskbarView: UIView {
                 button.isHidden = false
                 let rect = model.windowButtonFrame(index)
                 button.frame = rect.offsetBy(dx: 0, dy: -barTop)
-                let label = model.title(for: win)
+                let label = rect.width < 96 ? "" : model.title(for: win)
                 button.configure(app: win.app, text: label, isActive: win.id == model.focusID && !win.isMinimized)
             } else {
                 button.isHidden = true

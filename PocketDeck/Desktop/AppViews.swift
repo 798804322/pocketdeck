@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -124,12 +124,16 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     private let forwardButton = UIButton(type: .system)
     private let reloadButton = UIButton(type: .system)
     private let urlButton = UIButton(type: .system)
+    private let zoomButton = UIButton(type: .system)
     private let urlLabel = UILabel()
     private let progress = UIView()
     private let webView = WKWebView()
     private var urlString = "https://www.apple.com.cn"
     private var editingURL = false
     private var urlBuffer = ""
+    private let zoomTitles = ["1.0×", "1.15×", "1.3×"]
+    private let zoomValues: [CGFloat] = [1.0, 1.15, 1.3]
+    private var zoomIndex = 0
 
     init(startURL: String?) {
         super.init(frame: .zero)
@@ -169,6 +173,13 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         urlButton.layer.cornerRadius = 6
         toolbar.addSubview(urlButton)
 
+        zoomButton.setTitle(zoomTitles[0], for: .normal)
+        zoomButton.titleLabel?.font = .systemFont(ofSize: 11, weight: .medium)
+        zoomButton.setTitleColor(UIColor.white.withAlphaComponent(0.8), for: .normal)
+        zoomButton.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        zoomButton.layer.cornerRadius = 6
+        toolbar.addSubview(zoomButton)
+
         progress.backgroundColor = UIColor(red: 0.36, green: 0.56, blue: 1.0, alpha: 1)
         progress.isHidden = true
         addSubview(progress)
@@ -196,6 +207,12 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         urlString = candidate
         urlLabel.text = candidate
         webView.load(URLRequest(url: url))
+    }
+
+    private func cycleZoom() {
+        zoomIndex = (zoomIndex + 1) % zoomValues.count
+        webView.pageZoom = zoomValues[zoomIndex]
+        zoomButton.setTitle(zoomTitles[zoomIndex], for: .normal)
     }
 
     private func beginURL() {
@@ -325,6 +342,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
             if forwardButton.frame.contains(point) { webView.goForward(); return }
             if reloadButton.frame.contains(point) { webView.reload(); return }
             if urlButton.frame.contains(point) { beginURL(); return }
+            if zoomButton.frame.contains(point) { cycleZoom(); return }
             return
         }
         clickInPage(x: point.x, y: point.y - barHeight)
@@ -372,7 +390,8 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         forwardButton.frame = CGRect(x: 38, y: 6, width: 28, height: 28)
         reloadButton.frame = CGRect(x: 70, y: 6, width: 28, height: 28)
         urlButton.frame = CGRect(x: bounds.width - 58, y: 6, width: 50, height: 28)
-        urlLabel.frame = CGRect(x: 106, y: 6, width: max(0, bounds.width - 106 - 66), height: 28)
+        zoomButton.frame = CGRect(x: bounds.width - 104, y: 6, width: 42, height: 28)
+        urlLabel.frame = CGRect(x: 106, y: 6, width: max(0, bounds.width - 106 - 112), height: 28)
         progress.frame = CGRect(x: 0, y: barHeight - 2, width: bounds.width, height: 2)
         webView.frame = CGRect(x: 0, y: barHeight, width: bounds.width,
                                height: max(0, bounds.height - barHeight))
