@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 /// Windows 风格的窗口
 final class DeckWindowView: UIView {
@@ -100,6 +100,11 @@ final class DeckWindowView: UIView {
 
     func handleScroll(_ dy: CGFloat) {
         content?.handleScroll(dy)
+    }
+
+    func handleDrag(at point: CGPoint, phase: DragPhase) {
+        let local = CGPoint(x: point.x, y: point.y - DeckModel.shared.titleBarHeight)
+        content?.handleDrag(at: local, phase: phase)
     }
 
     override func layoutSubviews() {

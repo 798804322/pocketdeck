@@ -39,6 +39,9 @@ final class DesktopViewController: UIViewController {
         model.contentFocus = { [weak self] id in
             self?.windowViews[id]?.content?.activate()
         }
+        model.contentDrag = { [weak self] id, point, phase in
+            self?.windowViews[id]?.handleDrag(at: point, phase: phase)
+        }
 
         NotificationCenter.default.addObserver(self, selector: #selector(sync),
                                                name: .deckChanged, object: nil)

@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 
 extension Notification.Name {
     static let deckChanged = Notification.Name("deck.changed")
@@ -23,6 +23,7 @@ final class DeckModel {
     var startMenuOpen = false
     var dragWindowID: UUID?
     var resizeWindowID: UUID?
+    private(set) var pageDragWindowID: UUID?
     /// 手机「点触」模式：直接点哪儿，大屏点哪儿
     var absoluteMode = false
     /// 光标速度倍率（手机滑动 1pt，光标移动 cursorSpeed pt）
@@ -43,6 +44,7 @@ final class DeckModel {
     /// 点击分发：由桌面视图注册
     var contentTap: ((UUID, CGPoint) -> Void)?
     var contentFocus: ((UUID) -> Void)?
+    var contentDrag: ((UUID, CGPoint, DragPhase) -> Void)?
 
     /// 网页里点了「选择文件」：手机端注册弹窗，拿到结果再回填
     var pickFileHandler: (() -> Void)?
@@ -129,6 +131,12 @@ final class DeckModel {
         }
 
         cursor = target
+
+        if let id = pageDragWindowID, let win = windows.first(where: { $0.id == id }) {
+            let local = CGPoint(x: cursor.x - win.frame.minX, y: cursor.y - win.frame.minY)
+            contentDrag?(id, local, .move)
+        }
+
         post()
     }
 
@@ -166,11 +174,22 @@ final class DeckModel {
         if localY <= titleBarHeight, localY >= 0 {
             focus(win.id)
             dragWindowID = win.id
+            return
         }
+
+        // 按在窗口内容上：把拖动转给网页（进度条、滑块）
+        focus(win.id)
+        pageDragWindowID = win.id
+        contentDrag?(win.id, CGPoint(x: localX, y: localY), .begin)
     }
 
     func release() {
         if let id = dragWindowID { applySnap(id) }
+        if let id = pageDragWindowID, let win = windows.first(where: { $0.id == id }) {
+            let local = CGPoint(x: cursor.x - win.frame.minX, y: cursor.y - win.frame.minY)
+            contentDrag?(id, local, .end)
+        }
+        pageDragWindowID = nil
         dragWindowID = nil
         resizeWindowID = nil
         lastDragEndedAt = Date().timeIntervalSince1970

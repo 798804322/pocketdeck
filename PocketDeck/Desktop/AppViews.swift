@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -7,6 +7,7 @@ protocol DeckAppContent: AnyObject {
     func activate()
     func handleTap(at point: CGPoint)
     func handleScroll(_ dy: CGFloat)
+    func handleDrag(at point: CGPoint, phase: DragPhase)
 }
 
 class BaseContentView: UIView, DeckAppContent {
@@ -23,6 +24,7 @@ class BaseContentView: UIView, DeckAppContent {
     func activate() {}
     func handleTap(at point: CGPoint) {}
     func handleScroll(_ dy: CGFloat) {}
+    func handleDrag(at point: CGPoint, phase: DragPhase) {}
 
     func makeLabel(_ text: String, size: CGFloat, weight: UIFont.Weight, color: UIColor) -> UILabel {
         let label = UILabel()
@@ -394,6 +396,35 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
             return
         }
         clickInPage(x: point.x, y: point.y - barHeight)
+    }
+
+    /// 长按后拖动：把 pointer down/move/up 一路发给网页（进度条、滑块靠它）
+    override func handleDrag(at point: CGPoint, phase: DragPhase) {
+        let phaseValue: Int
+        switch phase {
+        case .begin: phaseValue = 0
+        case .move:  phaseValue = 1
+        case .end:   phaseValue = 2
+        }
+
+        let js = """
+        (function(phase, x, y){
+          var type = phase === 0 ? 'down' : (phase === 1 ? 'move' : 'up');
+          var el = window.__pdDragEl;
+          if (type === 'down') {
+            el = document.elementFromPoint(x, y) || document.body;
+            window.__pdDragEl = el;
+          }
+          if (!el) { el = document.body; }
+          var buttons = (type === 'up') ? 0 : 1;
+          var opt = {bubbles:true, cancelable:true, view:window, clientX:x, clientY:y, button:0, buttons:buttons};
+          try { el.dispatchEvent(new PointerEvent('pointer' + type, opt)); } catch (e) {}
+          try { el.dispatchEvent(new MouseEvent('mouse' + type, opt)); } catch (e) {}
+          if (type === 'up') { window.__pdDragEl = null; }
+          return true;
+        })(\(phaseValue), \(Double(point.x)), \(Double(point.y - 40)));
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     private func clickInPage(x: CGFloat, y: CGFloat) {
