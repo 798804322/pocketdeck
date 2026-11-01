@@ -174,7 +174,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
         urlLabel.text = urlString
         toolbar.addSubview(urlLabel)
 
-        urlButton.setTitle("网址", for: .normal)
+        urlButton.setTitle("退出", for: .normal)
         urlButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
         urlButton.setTitleColor(.white, for: .normal)
         urlButton.backgroundColor = UIColor.white.withAlphaComponent(0.10)
@@ -387,6 +387,8 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
             if reloadButton.frame.contains(point) { webView.reload(); return }
             if zoomButton.frame.contains(point) { cycleZoom(); return }
             if uaButton.frame.contains(point) { toggleUA(); return }
+            // 右边那个按钮：退出视频全屏 / 停止播放
+            if urlButton.frame.contains(point) { exitMedia(); return }
             // 地址栏整条都能点，直接进编辑
             beginURL()
             return
@@ -404,9 +406,37 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
             if (node.tagName === 'A' && node.href) { window.location.href = node.href; return 'link'; }
             node = node.parentElement;
           }
-          try { el.click(); } catch (e) {}
+          var opt = {bubbles:true, cancelable:true, view:window, button:0, buttons:1};
+          try { el.dispatchEvent(new PointerEvent('pointerdown', opt)); } catch (e) {}
+          try { el.dispatchEvent(new MouseEvent('mousedown', opt)); } catch (e) {}
+          try { el.dispatchEvent(new PointerEvent('pointerup', opt)); } catch (e) {}
+          try { el.dispatchEvent(new MouseEvent('mouseup', opt)); } catch (e) {}
+          try { el.dispatchEvent(new MouseEvent('click', opt)); } catch (e) {}
           if (el.focus) { try { el.focus(); } catch (e) {} }
           return el.tagName || 'none';
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    /// 退出视频全屏 / 停止播放（很多播放器的关闭按钮我点不到，给个硬出口）
+    private func exitMedia() {
+        let js = """
+        (function(){
+          try { if (document.fullscreenElement) { document.exitFullscreen(); } } catch (e) {}
+          try { if (document.webkitFullscreenElement) { document.webkitExitFullscreen(); } } catch (e) {}
+          try {
+            if (window.player) {
+              if (window.player.exitFullscreen) { window.player.exitFullscreen(); }
+              if (window.player.pause) { window.player.pause(); }
+            }
+          } catch (e) {}
+          try {
+            var vids = document.querySelectorAll('video');
+            for (var i = 0; i < vids.length; i++) { vids[i].pause(); }
+          } catch (e) {}
+          try { if (document.exitFullscreen) { document.exitFullscreen(); } } catch (e) {}
+          return true;
         })();
         """
         webView.evaluateJavaScript(js, completionHandler: nil)
