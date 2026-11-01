@@ -271,14 +271,16 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let top = view.safeAreaInsets.top
         let bottom = view.safeAreaInsets.bottom
 
-        let headerY = top + 8
+        let headerY = top + 4
         statusDot.frame = CGRect(x: 22, y: headerY + 11, width: 6, height: 6)
         statusLabel.frame = CGRect(x: 36, y: headerY, width: w - 36 - 52, height: 28)
         infoButton.frame = CGRect(x: w - 44, y: headerY, width: 30, height: 28)
 
+        let keyboardUp = keyboardHeight > 0
         let rowHeight: CGFloat = 60
-        let bottomInset = max(bottom, keyboardHeight)
-        let rowY = h - bottomInset - 10 - rowHeight
+        let bottomInset = keyboardUp ? max(bottom, keyboardHeight) : bottom
+        let rowY = h - bottomInset - (keyboardUp ? 6 : 10) - rowHeight
+        for button in buttons { button.isHidden = keyboardUp }
         let gap: CGFloat = 8
         let buttonWidth = (w - 32 - gap * 4) / 5
         for (index, button) in buttons.enumerated() {
@@ -286,9 +288,10 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
                                   y: rowY, width: buttonWidth, height: rowHeight)
         }
 
-        let padTop = headerY + 38
+        let padTop = headerY + 32
+        let padBottom = keyboardUp ? (h - keyboardHeight - 8) : (rowY - 10)
         trackpad.frame = CGRect(x: 14, y: padTop, width: w - 28,
-                                height: max(120, rowY - 12 - padTop))
+                                height: max(120, padBottom - padTop))
         emptyHint.frame = CGRect(x: 0, y: trackpad.bounds.midY - 34,
                                  width: trackpad.bounds.width, height: 44)
         keyboardField.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
@@ -317,8 +320,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
             let size = model.screenSize
             let speed = String(format: "%.1f", model.cursorSpeed)
             statusDot.backgroundColor = UIColor(red: 0.42, green: 0.86, blue: 0.62, alpha: 1)
-            let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-            statusLabel.text = "已连接 \(Int(size.width))×\(Int(size.height)) · \(speed)× · v\(build)"
+            statusLabel.text = "已连接 \(Int(size.width))×\(Int(size.height)) · \(speed)× · v\(AppInfo.version)"
             statusLabel.textColor = UIColor.white.withAlphaComponent(0.8)
         } else {
             statusDot.backgroundColor = UIColor(red: 1.0, green: 0.62, blue: 0.45, alpha: 1)
@@ -338,9 +340,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
     @objc private func showDiagnostics() {
         var lines: [String] = []
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
-        lines.append("版本 \(version) (build \(build))")
+        lines.append("版本 \(AppInfo.version) (build \(AppInfo.build))")
         lines.append("手机屏: \(Int(UIScreen.main.bounds.width))×\(Int(UIScreen.main.bounds.height)) @\(Int(UIScreen.main.scale))x")
         lines.append("")
         lines.append("外接屏: \(model.externalSceneCreated ? "已创建" : "未创建")")

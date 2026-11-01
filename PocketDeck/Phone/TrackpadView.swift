@@ -31,7 +31,7 @@ final class TrackpadView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = UIColor.white.withAlphaComponent(0.035)
+        backgroundColor = UIColor.white.withAlphaComponent(0.06)
         layer.cornerRadius = 24
         layer.cornerCurve = .continuous
         layer.borderWidth = 1
