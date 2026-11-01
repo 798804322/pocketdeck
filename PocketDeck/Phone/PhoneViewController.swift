@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 
 /// 底部工具栏按钮：图标在上、文字在下
 final class PadButton: UIControl {
@@ -143,6 +143,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         }
         trackpad.onScroll = { [weak self] dy in self?.model.scroll(dy * 1.6) }
         trackpad.onTwoFingerTap = { [weak self] in self?.model.cycleWindows() }
+        trackpad.onHold = { [weak self] in self?.model.beginDrag() }
         view.addSubview(trackpad)
 
         keyboardButton = PadButton(title: "键盘", symbol: "keyboard")
@@ -161,6 +162,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         buttons.forEach { view.addSubview($0) }
 
         keyboardField.delegate = self
+        keyboardField.addTarget(self, action: #selector(fieldChanged), for: .editingChanged)
         keyboardField.autocorrectionType = .no
         keyboardField.autocapitalizationType = .none
         keyboardField.spellCheckingType = .no
@@ -293,7 +295,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         lines.append("")
         lines.append("滑 = 移光标，轻点 = 单击")
         lines.append("双指滑 = 滚轮，双指轻点 = 切窗口")
-        lines.append("标题栏按住拖 = 移动，边缘 = 分屏")
+        lines.append("标题栏长按 0.2 秒再拖 = 移动，拖到边缘 = 分屏")
         lines.append("点顶部这一行 = 调光标速度")
 
         let alert = UIAlertController(title: "状态", message: lines.joined(separator: "\n"),
@@ -367,18 +369,26 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
 
     // MARK: - 键盘
 
+    /// 输入法（拼音）还在组合时不发出去，选完字再发，避免中文打不出来
+    @objc private func fieldChanged() {
+        if keyboardField.markedTextRange != nil { return }
+        let text = keyboardField.text ?? ""
+        guard !text.isEmpty else { return }
+        keyboardField.text = ""
+        model.type(text)
+    }
+
     func textField(_ textField: UITextField,
                    shouldChangeCharactersIn range: NSRange,
                    replacementString string: String) -> Bool {
+        // 拼音还在组合时放行，交给输入法
+        if textField.markedTextRange != nil { return true }
+        // 退格：内容为空时也要能发出去
         if string.isEmpty && range.length > 0 {
             model.backspace()
-        } else if string == "\n" {
-            model.newline()
-        } else {
-            model.type(string)
+            return false
         }
-        textField.text = ""
-        return false
+        return true
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

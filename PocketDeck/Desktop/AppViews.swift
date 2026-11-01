@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -210,7 +210,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         var candidate = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if candidate.isEmpty { return }
         if !candidate.contains("://") {
-            candidate = candidate.contains(".") ? "https://\(candidate)" : "https://www.bing.com/search?q=\(candidate.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
+            candidate = candidate.contains(".") ? "https://\(candidate)" : "https://www.baidu.com/s?wd=\(candidate.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")"
         }
         guard let url = URL(string: candidate) else { return }
         urlString = candidate

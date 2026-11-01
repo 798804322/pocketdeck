@@ -1,4 +1,4 @@
-import UIKit
+﻿import UIKit
 
 /// 手机触控板：中间那块深色区域 = 大屏的等比缩略图
 final class TrackpadView: UIView {
@@ -10,6 +10,8 @@ final class TrackpadView: UIView {
     var onScroll: ((CGFloat) -> Void)?
     /// 双指轻点（不滑动）
     var onTwoFingerTap: (() -> Void)?
+    /// 按住不动（用来启动拖窗口）
+    var onHold: (() -> Void)?
 
     /// 大屏区域（触控板坐标系里那个等比矩形）
     private(set) var screenFrame: CGRect = .zero
@@ -25,6 +27,7 @@ final class TrackpadView: UIView {
     private var active = false
     private var moved = false
     private var multi = false
+    private var holdWork: DispatchWorkItem?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -93,7 +96,17 @@ final class TrackpadView: UIView {
         last = point
         start = point
         multi = (event?.allTouches?.count ?? 1) >= 2
-        if !multi { onBegin?(point) }
+        if !multi {
+            onBegin?(point)
+            // 按住不动 0.22 秒 → 开始拖窗口（避免普通滑动误拖）
+            let work = DispatchWorkItem { [weak self] in
+                guard let self, self.active, !self.moved, !self.multi else { return }
+                self.onHold?()
+            }
+            holdWork?.cancel()
+            holdWork = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: work)
+        }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -103,6 +116,7 @@ final class TrackpadView: UIView {
 
         if fingers >= 2 || multi {
             multi = true
+            holdWork?.cancel()
             onScroll?(last.y - point.y)
             last = point
             return
@@ -110,15 +124,24 @@ final class TrackpadView: UIView {
 
         let delta = CGPoint(x: point.x - last.x, y: point.y - last.y)
         last = point
-        if hypot(point.x - start.x, point.y - start.y) > 5 { moved = true }
+        if hypot(point.x - start.x, point.y - start.y) > 5 {
+            moved = true
+            holdWork?.cancel()
+        }
         onMove?(point, delta)
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { finish(); return }
+        guard let touch = touches.first else {
+            holdWork?.cancel()
+            onEnd?(.zero)
+            finish()
+            return
+        }
         let point = touch.location(in: self)
         let tapped = active && !moved && !multi
         let twoFingerTap = active && !moved && multi
+        holdWork?.cancel()
         finish()
         onEnd?(point)
         if tapped { onTap?(point) }
@@ -126,6 +149,8 @@ final class TrackpadView: UIView {
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        holdWork?.cancel()
+        onEnd?(.zero)
         finish()
     }
 

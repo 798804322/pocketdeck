@@ -122,10 +122,14 @@ final class DeckModel {
         moveCursor(dx: target.x - cursor.x, dy: target.y - cursor.y)
     }
 
-    /// 手指按下：标题栏 = 拖窗口，右下角 = 改大小
+    /// 手指按下：只清状态，不启动拖动（避免拖完之后"粘"在光标上）
     func press() {
         dragWindowID = nil
         resizeWindowID = nil
+    }
+
+    /// 长按之后才开始拖：标题栏 = 移动窗口，右下角 = 改大小
+    func beginDrag() {
         guard let win = windowAt(cursor), !win.isMinimized else { return }
         let localX = cursor.x - win.frame.minX
         let localY = cursor.y - win.frame.minY
