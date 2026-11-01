@@ -117,7 +117,7 @@ final class NotesContentView: BaseContentView {
 
 // MARK: - 浏览器
 
-final class BrowserContentView: BaseContentView, WKNavigationDelegate {
+final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDelegate {
 
     private let toolbar = UIView()
     private let backButton = UIButton(type: .system)
@@ -194,6 +194,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         addSubview(progress)
 
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         webView.isUserInteractionEnabled = false
         webView.allowsBackForwardNavigationGestures = false
         addSubview(webView)
@@ -423,6 +424,20 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         progress.isHidden = false
+    }
+
+    /// 网页里点「选择文件」：交给手机端弹文件选择器
+    func webView(_ webView: WKWebView,
+                 runOpenPanelWith parameters: WKOpenPanelParameters,
+                 initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping ([URL]?) -> Void) {
+        if DeckModel.shared.pickFileHandler != nil {
+            DeckModel.shared.requestFile { urls in
+                completionHandler(urls)
+            }
+        } else {
+            completionHandler(nil)
+        }
     }
 
     override func layoutSubviews() {

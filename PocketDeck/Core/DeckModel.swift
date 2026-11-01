@@ -43,6 +43,21 @@ final class DeckModel {
     var contentTap: ((UUID, CGPoint) -> Void)?
     var contentFocus: ((UUID) -> Void)?
 
+    /// 网页里点了「选择文件」：手机端注册弹窗，拿到结果再回填
+    var pickFileHandler: (() -> Void)?
+    private var filePickCompletion: (([URL]?) -> Void)?
+
+    func requestFile(completion: @escaping ([URL]?) -> Void) {
+        filePickCompletion = completion
+        pickFileHandler?()
+    }
+
+    func finishFilePick(_ urls: [URL]?) {
+        let completion = filePickCompletion
+        filePickCompletion = nil
+        completion?(urls)
+    }
+
     private init() {}
 
     var workArea: CGRect {
@@ -62,7 +77,8 @@ final class DeckModel {
         if changed || windows.isEmpty {
             cursor = CGPoint(x: size.width * 0.5, y: size.height * 0.42)
             if windows.isEmpty {
-                open(.notes, silent: true)
+                restoreLayout()
+                if windows.isEmpty { open(.notes, silent: true) }
             } else {
                 windows = windows.map { var w = $0; w.frame = clamped(w.frame); return w }
             }
@@ -154,6 +170,7 @@ final class DeckModel {
         if let id = dragWindowID { applySnap(id) }
         dragWindowID = nil
         resizeWindowID = nil
+        scheduleLayoutSave()
     }
 
     /// 拖到屏幕边缘自动分屏（左半 / 右半 / 铺满）
@@ -408,6 +425,7 @@ final class DeckModel {
         windows.append(DeckWindow(app: app, frame: CGRect(origin: CGPoint(x: x, y: y), size: size), docID: doc, url: url))
         focusID = windows.last?.id
         startMenuOpen = false
+        scheduleLayoutSave()
         if !silent { post() }
     }
 
@@ -462,6 +480,7 @@ final class DeckModel {
         guard let index = windows.firstIndex(where: { $0.id == id }) else { return }
         windows[index].isMinimized = true
         if focusID == id { focusID = windows.last(where: { !$0.isMinimized })?.id }
+        scheduleLayoutSave()
         post()
     }
 
@@ -490,6 +509,7 @@ final class DeckModel {
             win.frame = workArea.insetBy(dx: 6, dy: 6)
         }
         windows[index] = win
+        scheduleLayoutSave()
         post()
     }
 
@@ -497,7 +517,67 @@ final class DeckModel {
         windows.removeAll { $0.id == id }
         if focusID == id { focusID = windows.last(where: { !$0.isMinimized })?.id }
         if let next = focusID { contentFocus?(next) }
+        scheduleLayoutSave()
         post()
+    }
+
+    // MARK: - 布局记忆
+
+    private struct StoredWindow: Codable {
+        var app: String
+        var x: Double
+        var y: Double
+        var width: Double
+        var height: Double
+        var docID: String?
+        var url: String?
+        var isMaximized: Bool
+    }
+
+    private var saveWork: DispatchWorkItem?
+
+    func scheduleLayoutSave() {
+        saveWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in self?.saveLayout() }
+        saveWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6, execute: work)
+    }
+
+    private func saveLayout() {
+        let stored = windows.map { win in
+            StoredWindow(app: win.app.rawValue,
+                         x: Double(win.frame.origin.x),
+                         y: Double(win.frame.origin.y),
+                         width: Double(win.frame.width),
+                         height: Double(win.frame.height),
+                         docID: win.docID?.uuidString,
+                         url: win.url,
+                         isMaximized: win.isMaximized)
+        }
+        if let data = try? JSONEncoder().encode(stored) {
+            UserDefaults.standard.set(data, forKey: "pocketdeck.layout.v1")
+        }
+    }
+
+    /// 开机时把上次的窗口摆回来
+    func restoreLayout() {
+        guard windows.isEmpty,
+              let data = UserDefaults.standard.data(forKey: "pocketdeck.layout.v1"),
+              let stored = try? JSONDecoder().decode([StoredWindow].self, from: data),
+              !stored.isEmpty else { return }
+
+        for item in stored {
+            guard let app = DeckApp(rawValue: item.app) else { continue }
+            var doc: UUID?
+            if let raw = item.docID, let id = UUID(uuidString: raw), NotesStore.shared.doc(id) != nil {
+                doc = id
+            }
+            let frame = CGRect(x: item.x, y: item.y, width: item.width, height: item.height)
+            var win = DeckWindow(app: app, frame: frame, docID: doc, url: item.url)
+            win.isMaximized = item.isMaximized
+            windows.append(win)
+        }
+        focusID = windows.last?.id
     }
 
     // MARK: - 输入

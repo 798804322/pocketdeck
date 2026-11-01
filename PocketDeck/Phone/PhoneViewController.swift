@@ -1,4 +1,5 @@
 ﻿import UIKit
+import UniformTypeIdentifiers
 
 /// 底部工具栏按钮：图标在上、文字在下
 final class PadButton: UIControl {
@@ -51,7 +52,7 @@ final class PadButton: UIControl {
 }
 
 /// 手机这一侧：状态条 + 触控板 + 底部工具栏
-final class PhoneViewController: UIViewController, UITextFieldDelegate {
+final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocumentPickerDelegate {
 
     private let model = DeckModel.shared
 
@@ -76,6 +77,41 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        becomeFirstResponder()
+    }
+
+    /// 蓝牙键盘：方向键移光标、回车=单击、Esc=关窗、Tab=切窗口
+    override var keyCommands: [UIKeyCommand]? {
+        var commands: [UIKeyCommand] = []
+        func add(_ input: String, _ action: Selector) {
+            let command = UIKeyCommand(input: input, modifierFlags: [], action: action)
+            command.wantsPriorityOverSystemBehavior = true
+            commands.append(command)
+        }
+        add(UIKeyCommand.inputUpArrow, #selector(keyUp))
+        add(UIKeyCommand.inputDownArrow, #selector(keyDown))
+        add(UIKeyCommand.inputLeftArrow, #selector(keyLeft))
+        add(UIKeyCommand.inputRightArrow, #selector(keyRight))
+        add("\r", #selector(keyEnter))
+        add(UIKeyCommand.inputEscape, #selector(keyEscape))
+        add("\t", #selector(keyTab))
+        return commands
+    }
+
+    @objc private func keyUp() { model.moveCursor(dx: 0, dy: -22) }
+    @objc private func keyDown() { model.moveCursor(dx: 0, dy: 22) }
+    @objc private func keyLeft() { model.moveCursor(dx: -22, dy: 0) }
+    @objc private func keyRight() { model.moveCursor(dx: 22, dy: 0) }
+    @objc private func keyEnter() { model.click() }
+    @objc private func keyTab() { model.cycleWindows() }
+    @objc private func keyEscape() {
+        if let id = model.focusID { model.close(id) }
     }
 
     override func viewDidLoad() {
@@ -193,7 +229,23 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide),
                                                name: UIResponder.keyboardWillHideNotification, object: nil)
 
+        model.pickFileHandler = { [weak self] in
+            guard let self else { return }
+            let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.item], asCopy: true)
+            picker.allowsMultipleSelection = false
+            picker.delegate = self
+            self.present(picker, animated: true)
+        }
+
         updateStatus()
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        model.finishFilePick(urls)
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        model.finishFilePick(nil)
     }
 
     @objc private func keyboardWillChange(_ note: Notification) {
