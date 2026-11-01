@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -125,6 +125,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     private let reloadButton = UIButton(type: .system)
     private let urlButton = UIButton(type: .system)
     private let zoomButton = UIButton(type: .system)
+    private let uaButton = UIButton(type: .system)
     private let urlLabel = UILabel()
     private let progress = UIView()
     private let webView = WKWebView()
@@ -134,6 +135,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     private let zoomTitles = ["1.0×", "1.15×", "1.3×"]
     private let zoomValues: [CGFloat] = [1.0, 1.15, 1.3]
     private var zoomIndex = 0
+    private var mobileUA = false
 
     init(startURL: String?) {
         super.init(frame: .zero)
@@ -180,6 +182,13 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         zoomButton.layer.cornerRadius = 6
         toolbar.addSubview(zoomButton)
 
+        uaButton.setTitle("电脑", for: .normal)
+        uaButton.titleLabel?.font = .systemFont(ofSize: 11, weight: .medium)
+        uaButton.setTitleColor(UIColor.white.withAlphaComponent(0.8), for: .normal)
+        uaButton.backgroundColor = UIColor.white.withAlphaComponent(0.06)
+        uaButton.layer.cornerRadius = 6
+        toolbar.addSubview(uaButton)
+
         progress.backgroundColor = UIColor(red: 0.36, green: 0.56, blue: 1.0, alpha: 1)
         progress.isHidden = true
         addSubview(progress)
@@ -207,6 +216,18 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         urlString = candidate
         urlLabel.text = candidate
         webView.load(URLRequest(url: url))
+    }
+
+    /// 切「电脑 / 手机」UA：有些站只在手机版下才给完整功能
+    private func toggleUA() {
+        mobileUA.toggle()
+        if mobileUA {
+            webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        } else {
+            webView.customUserAgent = nil
+        }
+        uaButton.setTitle(mobileUA ? "手机" : "电脑", for: .normal)
+        webView.reload()
     }
 
     private func cycleZoom() {
@@ -343,6 +364,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
             if reloadButton.frame.contains(point) { webView.reload(); return }
             if urlButton.frame.contains(point) { beginURL(); return }
             if zoomButton.frame.contains(point) { cycleZoom(); return }
+            if uaButton.frame.contains(point) { toggleUA(); return }
             return
         }
         clickInPage(x: point.x, y: point.y - barHeight)
@@ -391,7 +413,8 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         reloadButton.frame = CGRect(x: 70, y: 6, width: 28, height: 28)
         urlButton.frame = CGRect(x: bounds.width - 58, y: 6, width: 50, height: 28)
         zoomButton.frame = CGRect(x: bounds.width - 104, y: 6, width: 42, height: 28)
-        urlLabel.frame = CGRect(x: 106, y: 6, width: max(0, bounds.width - 106 - 112), height: 28)
+        uaButton.frame = CGRect(x: bounds.width - 152, y: 6, width: 44, height: 28)
+        urlLabel.frame = CGRect(x: 106, y: 6, width: max(0, bounds.width - 106 - 160), height: 28)
         progress.frame = CGRect(x: 0, y: barHeight - 2, width: bounds.width, height: 2)
         webView.frame = CGRect(x: 0, y: barHeight, width: bounds.width,
                                height: max(0, bounds.height - barHeight))
