@@ -380,3 +380,52 @@ final class CursorView: UIView {
         path.stroke()
     }
 }
+
+/// 桌面上的图标（和 Windows 一样，双击不用，点一下就开）
+final class DesktopIconView: UIView {
+
+    let app: DeckApp
+    private let tile = UIView()
+    private let icon = UIImageView()
+    private let label = UILabel()
+
+    init(app: DeckApp) {
+        self.app = app
+        super.init(frame: .zero)
+        isUserInteractionEnabled = false
+
+        tile.backgroundColor = app.tint
+        tile.layer.cornerRadius = 12
+        tile.layer.cornerCurve = .continuous
+        tile.layer.shadowColor = UIColor.black.cgColor
+        tile.layer.shadowOpacity = 0.35
+        tile.layer.shadowRadius = 8
+        tile.layer.shadowOffset = CGSize(width: 0, height: 4)
+        addSubview(tile)
+
+        icon.image = UIImage(systemName: app.symbol)
+        icon.tintColor = .white
+        icon.contentMode = .scaleAspectFit
+        addSubview(icon)
+
+        label.text = app.title
+        label.font = .systemFont(ofSize: 11.5)
+        label.textColor = UIColor.white.withAlphaComponent(0.92)
+        label.textAlignment = .center
+        label.layer.shadowColor = UIColor.black.cgColor
+        label.layer.shadowOpacity = 0.6
+        label.layer.shadowRadius = 3
+        label.layer.shadowOffset = CGSize(width: 0, height: 1)
+        addSubview(label)
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let side: CGFloat = 52
+        tile.frame = CGRect(x: (bounds.width - side) / 2, y: 4, width: side, height: side)
+        icon.frame = tile.frame.insetBy(dx: 13, dy: 13)
+        label.frame = CGRect(x: 0, y: 62, width: bounds.width, height: 16)
+    }
+}

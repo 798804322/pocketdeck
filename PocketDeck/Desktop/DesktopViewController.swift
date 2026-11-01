@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 final class DesktopViewController: UIViewController {
 
@@ -8,6 +8,7 @@ final class DesktopViewController: UIViewController {
     private let startMenu = StartMenuView()
     private let cursor = CursorView()
     private var windowViews: [UUID: DeckWindowView] = [:]
+    private var desktopIcons: [DesktopIconView] = []
     private var timer: Timer?
 
     override var prefersStatusBarHidden: Bool { true }
@@ -23,6 +24,10 @@ final class DesktopViewController: UIViewController {
         view.backgroundColor = .black
 
         view.addSubview(wallpaper)
+
+        desktopIcons = DeckApp.allCases.map { DesktopIconView(app: $0) }
+        desktopIcons.forEach { view.addSubview($0) }
+
         view.addSubview(taskbar)
         view.addSubview(startMenu)
         view.addSubview(cursor)
@@ -83,6 +88,9 @@ final class DesktopViewController: UIViewController {
 
     private func layoutAll() {
         wallpaper.frame = view.bounds
+        for (index, item) in desktopIcons.enumerated() {
+            item.frame = model.desktopIconFrame(index)
+        }
         taskbar.frame = model.taskbarFrame()
         taskbar.update(with: model, time: currentTime(), date: currentDate())
         startMenu.frame = model.startMenuFrame()

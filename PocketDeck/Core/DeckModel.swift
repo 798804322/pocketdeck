@@ -273,6 +273,13 @@ final class DeckModel {
                       width: width, height: taskbarHeight - 10)
     }
 
+    /// 桌面图标（左侧一列）
+    func desktopIconFrame(_ index: Int) -> CGRect {
+        let width: CGFloat = 88
+        let height: CGFloat = 92
+        return CGRect(x: 16, y: 16 + CGFloat(index) * (height + 6), width: width, height: height)
+    }
+
     // MARK: - 开始菜单
 
     func startMenuFrame() -> CGRect {

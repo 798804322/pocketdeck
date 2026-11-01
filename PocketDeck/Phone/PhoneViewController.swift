@@ -201,11 +201,16 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         let screens = UIScreen.screens.count
         let scenes = UIApplication.shared.connectedScenes.count
         let external = model.externalSceneCreated ? "已创建" : "未创建"
-        diagLabel.text = "屏\(screens) 场景\(scenes) 外接\(external) 触\(model.touchCount) · 点开看详情"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        diagLabel.text = "v\(version) · 屏\(screens) 场景\(scenes) 外接\(external) 触\(model.touchCount) · 点开看详情"
     }
 
     @objc private func showDiagnostics() {
         var lines: [String] = []
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        lines.append("版本: \(version) (build \(build))")
+        lines.append("")
         lines.append("UIScreen.screens = \(UIScreen.screens.count)")
         for (index, screen) in UIScreen.screens.enumerated() {
             lines.append("  \(index): \(Int(screen.bounds.width))×\(Int(screen.bounds.height)) @\(Int(screen.scale))x")
