@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -51,6 +51,24 @@ jobs:
             done
             exit $status
           fi
+
+      - name: Record build log on failure
+        if: failure()
+        run: |
+          git config user.name "pocketdeck-ci"
+          git config user.email "ci@users.noreply.github.com"
+          {
+            echo "build failed: $(date -u)"
+            echo ""
+            echo "== errors =="
+            grep -n "error:" build.log | head -n 40 || true
+            echo ""
+            echo "== tail 80 =="
+            tail -n 80 build.log || true
+          } > build-error.txt
+          git add build-error.txt
+          git commit -m "ci: record build error [skip ci]" || true
+          git push || true
 
       - name: Package unsigned IPA
         run: |
