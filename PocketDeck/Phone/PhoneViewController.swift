@@ -68,6 +68,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
     private var pointButton: PadButton!
     private var closeButton: PadButton!
     private var buttons: [PadButton] = []
+    private var keyboardHeight: CGFloat = 0
+    private let bgGradient = CAGradientLayer()
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
@@ -79,6 +81,15 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.03, green: 0.04, blue: 0.06, alpha: 1)
+
+        bgGradient.colors = [
+            UIColor(red: 0.06, green: 0.07, blue: 0.13, alpha: 1).cgColor,
+            UIColor(red: 0.03, green: 0.04, blue: 0.06, alpha: 1).cgColor,
+            UIColor(red: 0.08, green: 0.07, blue: 0.12, alpha: 1).cgColor
+        ]
+        bgGradient.startPoint = CGPoint(x: 0.5, y: 0)
+        bgGradient.endPoint = CGPoint(x: 0.5, y: 1)
+        view.layer.insertSublayer(bgGradient, at: 0)
 
         statusDot.backgroundColor = UIColor(red: 1.0, green: 0.62, blue: 0.45, alpha: 1)
         statusDot.layer.cornerRadius = 3
@@ -175,12 +186,29 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
                                                name: UIScreen.didConnectNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(updateStatus),
                                                name: UIScreen.didDisconnectNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillChange(_:)),
+                                               name: UIResponder.keyboardWillChangeFrameNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillHide),
+                                               name: UIResponder.keyboardWillHideNotification, object: nil)
 
         updateStatus()
     }
 
+    @objc private func keyboardWillChange(_ note: Notification) {
+        guard let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let converted = view.convert(frame, from: nil)
+        keyboardHeight = max(0, view.bounds.maxY - converted.minY)
+        view.setNeedsLayout()
+    }
+
+    @objc private func keyboardWillHide() {
+        keyboardHeight = 0
+        view.setNeedsLayout()
+    }
+
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        bgGradient.frame = view.bounds
 
         let w = view.bounds.width
         let h = view.bounds.height
@@ -193,7 +221,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         infoButton.frame = CGRect(x: w - 44, y: headerY, width: 30, height: 28)
 
         let rowHeight: CGFloat = 60
-        let rowY = h - bottom - 10 - rowHeight
+        let bottomInset = max(bottom, keyboardHeight)
+        let rowY = h - bottomInset - 10 - rowHeight
         let gap: CGFloat = 8
         let buttonWidth = (w - 32 - gap * 4) / 5
         for (index, button) in buttons.enumerated() {
@@ -255,6 +284,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
         lines.append("版本 \(version) (build \(build))")
+        lines.append("手机屏: \(Int(UIScreen.main.bounds.width))×\(Int(UIScreen.main.bounds.height)) @\(Int(UIScreen.main.scale))x")
         lines.append("")
         lines.append("外接屏: \(model.externalSceneCreated ? "已创建" : "未创建")")
         lines.append("分辨率: \(Int(model.screenSize.width))×\(Int(model.screenSize.height))")
