@@ -19,16 +19,17 @@ targets:
     platform: iOS
     sources:
       - path: PocketDeck
-    info:
-      path: PocketDeck/Info.plist
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.pocketdeck.app
         PRODUCT_NAME: PocketDeck
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: "NO"
-        MARKETING_VERSION: "1.9"
-        CURRENT_PROJECT_VERSION: "9"
+        # 关键：直接指定 plist 文件，不让 XcodeGen 重新生成
+        # （之前 version / 启动画面 / 状态栏这些键就是被重新生成时丢掉的）
+        INFOPLIST_FILE: PocketDeck/Info.plist
+        MARKETING_VERSION: "2.0"
+        CURRENT_PROJECT_VERSION: "20"
     scheme:
       testTargets: []
       gatherCoverageData: false
