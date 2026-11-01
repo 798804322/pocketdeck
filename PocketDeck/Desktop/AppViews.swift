@@ -144,6 +144,8 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
     private let zoomValues: [CGFloat] = [1.0, 1.15, 1.3]
     private var zoomIndex = 0
     private var mobileUA = false
+    private let desktopUA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+    private let phoneUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
 
     init(startURL: String?) {
         super.init(frame: .zero)
@@ -201,6 +203,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
         progress.isHidden = true
         addSubview(progress)
 
+        webView.customUserAgent = desktopUA
         webView.navigationDelegate = self
         webView.uiDelegate = self
         webView.isUserInteractionEnabled = false
@@ -230,11 +233,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
     /// 切「电脑 / 手机」UA：有些站只在手机版下才给完整功能
     private func toggleUA() {
         mobileUA.toggle()
-        if mobileUA {
-            webView.customUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
-        } else {
-            webView.customUserAgent = nil
-        }
+        webView.customUserAgent = mobileUA ? phoneUA : desktopUA
         uaButton.setTitle(mobileUA ? "手机" : "电脑", for: .normal)
         webView.reload()
     }
@@ -521,6 +520,17 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
         progress.isHidden = false
+    }
+
+    /// 网页开新窗口（登录弹窗、target=_blank）：直接在当前窗口打开，否则点了没反应
+    func webView(_ webView: WKWebView,
+                 createWebViewWith configuration: WKWebViewConfiguration,
+                 for navigationAction: WKNavigationAction,
+                 windowFeatures: WKWindowFeatures) -> WKWebView? {
+        if let url = navigationAction.request.url {
+            webView.load(URLRequest(url: url))
+        }
+        return nil
     }
 
     /// 网页里点「选择文件」：交给手机端弹文件选择器
