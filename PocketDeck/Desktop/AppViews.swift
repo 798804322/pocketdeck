@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -227,7 +227,94 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     override func activate() {
         let model = DeckModel.shared
         model.scrollSink = { [weak self] dy in self?.handleScroll(dy) }
-        if editingURL { bindSinks() }
+        if editingURL {
+            bindSinks()
+        } else {
+            bindPageInput()
+        }
+    }
+
+    /// 键盘直接打迸网页里的输入框（金山文档、腾讯文档这类靠它才能用）
+    private func bindPageInput() {
+        let model = DeckModel.shared
+        model.insertSink = { [weak self] text in self?.insertIntoPage(text) }
+        model.backspaceSink = { [weak self] in self?.backspaceInPage() }
+        model.returnSink = { [weak self] in self?.newlineInPage() }
+    }
+
+    private func jsString(_ text: String) -> String {
+        var out = "\""
+        for char in text {
+            switch char {
+            case "\\": out += "\\\\"
+            case "\"": out += "\\\""
+            case "\n": out += "\\n"
+            case "\r": out += "\\r"
+            case "\t": out += "\\t"
+            default: out.append(char)
+            }
+        }
+        out += "\""
+        return out
+    }
+
+    private func insertIntoPage(_ text: String) {
+        guard !text.isEmpty else { return }
+        let js = """
+        (function(t){
+          var el = document.activeElement;
+          if (!el || el === document.body) return 'none';
+          if (el.isContentEditable) { document.execCommand('insertText', false, t); return 'editable'; }
+          if (typeof el.value === 'string') {
+            var start = el.selectionStart, end = el.selectionEnd;
+            if (typeof start === 'number') {
+              el.value = el.value.slice(0, start) + t + el.value.slice(end);
+              el.selectionStart = el.selectionEnd = start + t.length;
+            } else {
+              el.value += t;
+            }
+            el.dispatchEvent(new Event('input', {bubbles:true}));
+            return 'value';
+          }
+          return 'none';
+        })(\(jsString(text)));
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private func backspaceInPage() {
+        let js = """
+        (function(){
+          var el = document.activeElement;
+          if (!el || el === document.body) return;
+          if (el.isContentEditable) { document.execCommand('delete'); return; }
+          if (typeof el.value !== 'string') return;
+          var start = el.selectionStart, end = el.selectionEnd;
+          if (typeof start !== 'number') { el.value = el.value.slice(0, -1); }
+          else if (start === end && start > 0) {
+            el.value = el.value.slice(0, start - 1) + el.value.slice(end);
+            el.selectionStart = el.selectionEnd = start - 1;
+          } else if (start !== end) {
+            el.value = el.value.slice(0, start) + el.value.slice(end);
+            el.selectionStart = el.selectionEnd = start;
+          }
+          el.dispatchEvent(new Event('input', {bubbles:true}));
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private func newlineInPage() {
+        let js = """
+        (function(){
+          var el = document.activeElement;
+          if (!el || el === document.body) return;
+          if (el.isContentEditable) { document.execCommand('insertLineBreak'); return; }
+          el.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', code:'Enter', keyCode:13, which:13, bubbles:true}));
+          el.dispatchEvent(new KeyboardEvent('keyup', {key:'Enter', code:'Enter', keyCode:13, which:13, bubbles:true}));
+        })();
+        """
+        webView.evaluateJavaScript(js, completionHandler: nil)
     }
 
     /// 真实触屏 / 手机光标点击转发
@@ -267,6 +354,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        if !editingURL { bindPageInput() }
         urlLabel.text = webView.url?.absoluteString ?? urlString
         urlString = webView.url?.absoluteString ?? urlString
         progress.isHidden = true
