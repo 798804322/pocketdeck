@@ -117,7 +117,7 @@ final class TrackpadView: UIView {
         if fingers >= 2 || multi {
             multi = true
             holdWork?.cancel()
-            onScroll?(last.y - point.y)
+            onScroll?(point.y - last.y)
             last = point
             return
         }
