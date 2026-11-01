@@ -427,6 +427,7 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
     }
 
     /// 网页里点「选择文件」：交给手机端弹文件选择器
+    @available(iOS 18.4, *)
     func webView(_ webView: WKWebView,
                  runOpenPanelWith parameters: WKOpenPanelParameters,
                  initiatedByFrame frame: WKFrameInfo,
