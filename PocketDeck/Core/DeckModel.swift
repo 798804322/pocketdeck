@@ -30,6 +30,7 @@ final class DeckModel {
 
     private var resizeStart: CGPoint = .zero
     private var resizeStartFrame: CGRect = .zero
+    private var lastDragEndedAt: TimeInterval = 0
     private var lastTitleClickID: UUID?
     private var lastTitleClickTime: TimeInterval = 0
 
@@ -146,6 +147,8 @@ final class DeckModel {
 
     /// 长按之后才开始拖：标题栏 = 移动窗口，右下角 = 改大小
     func beginDrag() {
+        // 刚拖完的 0.6 秒内不再开始，避免"甩不掉"
+        if Date().timeIntervalSince1970 - lastDragEndedAt < 0.6 { return }
         guard let win = windowAt(cursor), !win.isMinimized else { return }
         let localX = cursor.x - win.frame.minX
         let localY = cursor.y - win.frame.minY
@@ -170,6 +173,7 @@ final class DeckModel {
         if let id = dragWindowID { applySnap(id) }
         dragWindowID = nil
         resizeWindowID = nil
+        lastDragEndedAt = Date().timeIntervalSince1970
         scheduleLayoutSave()
     }
 

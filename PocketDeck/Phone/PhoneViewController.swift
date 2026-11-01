@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import UniformTypeIdentifiers
 
 /// 底部工具栏按钮：图标在上、文字在下
@@ -70,6 +70,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
     private var closeButton: PadButton!
     private var buttons: [PadButton] = []
     private var keyboardHeight: CGFloat = 0
+    private var lastFieldText = ""
     private let bgGradient = CAGradientLayer()
 
     override var prefersStatusBarHidden: Bool { true }
@@ -421,26 +422,34 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
     // MARK: - 键盘
 
-    /// 输入法（拼音）还在组合时不发出去，选完字再发，避免中文打不出来
+    /// 输入法安全：不主动清空输入框，而是和上一次内容做差分
+    /// —— 这样拼音能正常选字，退格也一定能发出去
     @objc private func fieldChanged() {
-        if keyboardField.markedTextRange != nil { return }
+        guard keyboardField.markedTextRange == nil else { return }
         let text = keyboardField.text ?? ""
-        guard !text.isEmpty else { return }
-        keyboardField.text = ""
-        model.type(text)
+        guard text != lastFieldText else { return }
+
+        if text.hasPrefix(lastFieldText) {
+            let added = String(text.dropFirst(lastFieldText.count))
+            if !added.isEmpty { model.type(added) }
+        } else if lastFieldText.hasPrefix(text) {
+            let removed = lastFieldText.count - text.count
+            for _ in 0..<removed { model.backspace() }
+        } else {
+            for _ in 0..<lastFieldText.count { model.backspace() }
+            if !text.isEmpty { model.type(text) }
+        }
+        lastFieldText = text
+
+        if text.count > 200 {
+            keyboardField.text = ""
+            lastFieldText = ""
+        }
     }
 
-    func textField(_ textField: UITextField,
-                   shouldChangeCharactersIn range: NSRange,
-                   replacementString string: String) -> Bool {
-        // 拼音还在组合时放行，交给输入法
-        if textField.markedTextRange != nil { return true }
-        // 退格：内容为空时也要能发出去
-        if string.isEmpty && range.length > 0 {
-            model.backspace()
-            return false
-        }
-        return true
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        textField.text = ""
+        lastFieldText = ""
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
