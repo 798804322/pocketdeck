@@ -53,13 +53,16 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
 
         trackpad.onBegin = { [weak self] point in
             guard let self else { return }
-            if self.model.absoluteMode { self.model.moveCursorTo(self.mapToScreen(point)) }
+            self.view.endEditing(true)
+            if self.model.absoluteMode, let target = self.mapToScreen(point) {
+                self.model.moveCursorTo(target)
+            }
             self.model.press()
         }
         trackpad.onMove = { [weak self] point, delta in
             guard let self else { return }
             if self.model.absoluteMode {
-                self.model.moveCursorTo(self.mapToScreen(point))
+                if let target = self.mapToScreen(point) { self.model.moveCursorTo(target) }
             } else {
                 self.model.moveCursor(dx: delta.x * 2.4, dy: delta.y * 2.4)
             }
@@ -67,7 +70,9 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         trackpad.onEnd = { [weak self] _ in self?.model.release() }
         trackpad.onTap = { [weak self] point in
             guard let self else { return }
-            if self.model.absoluteMode { self.model.moveCursorTo(self.mapToScreen(point)) }
+            if self.model.absoluteMode, let target = self.mapToScreen(point) {
+                self.model.moveCursorTo(target)
+            }
             self.model.click()
         }
         trackpad.onScroll = { [weak self] dy in self?.model.scroll(dy * 1.6) }
@@ -91,6 +96,15 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         keyboardField.backgroundColor = .clear
         keyboardField.textColor = .clear
         keyboardField.tintColor = .clear
+
+        let toolbar = UIToolbar(frame: CGRect(x: 0, y: 0, width: 240, height: 44))
+        toolbar.items = [
+            UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
+            UIBarButtonItem(title: "收起键盘", style: .done, target: self, action: #selector(hideKeyboard))
+        ]
+        toolbar.sizeToFit()
+        keyboardField.inputAccessoryView = toolbar
+
         view.addSubview(keyboardField)
 
         NotificationCenter.default.addObserver(self, selector: #selector(updateStatus),
@@ -135,12 +149,14 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         keyboardField.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
     }
 
-    private func mapToScreen(_ point: CGPoint) -> CGPoint {
-        let bounds = trackpad.bounds
-        guard bounds.width > 1, bounds.height > 1 else { return model.cursor }
-        let scaleX = model.screenSize.width / bounds.width
-        let scaleY = model.screenSize.height / bounds.height
-        return CGPoint(x: point.x * scaleX, y: point.y * scaleY)
+    /// 只认触控板里那块「大屏」矩形，按等比映射
+    private func mapToScreen(_ point: CGPoint) -> CGPoint? {
+        let rect = trackpad.screenFrame
+        guard rect.width > 1, rect.height > 1, rect.contains(point) else { return nil }
+        let x = (point.x - rect.minX) / rect.width * model.screenSize.width
+        let y = (point.y - rect.minY) / rect.height * model.screenSize.height
+        return CGPoint(x: min(max(0, x), model.screenSize.width - 2),
+                       y: min(max(0, y), model.screenSize.height - 2))
     }
 
     // MARK: - 控件
@@ -175,6 +191,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         pointButton.backgroundColor = model.absoluteMode
             ? UIColor.systemBlue.withAlphaComponent(0.38)
             : UIColor.white.withAlphaComponent(0.07)
+        trackpad.screenAspect = model.screenSize.width / max(model.screenSize.height, 1)
+        trackpad.setAbsoluteMode(model.absoluteMode)
     }
 
     // MARK: - 诊断
@@ -218,6 +236,10 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
         keyboardField.becomeFirstResponder()
     }
 
+    @objc private func hideKeyboard() {
+        view.endEditing(true)
+    }
+
     @objc private func toggleStart() {
         model.toggleStartMenu()
     }
@@ -230,8 +252,16 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
     @objc private func showApps(_ sender: UIButton) {
         let sheet = UIAlertController(title: "在大屏上打开", message: nil, preferredStyle: .actionSheet)
         for app in DeckApp.allCases {
-            sheet.addAction(UIAlertAction(title: app.title, style: .default) { [weak self] _ in
+            sheet.addAction(UIAlertAction(title: "桌面 · \(app.title)", style: .default) { [weak self] _ in
                 self?.model.open(app)
+            })
+        }
+        for native in NativeAppCatalog.all {
+            sheet.addAction(UIAlertAction(title: "手机 · \(native.name)（会切出去）", style: .default) { [weak self] _ in
+                guard let self else { return }
+                NativeAppLauncher.open(native) { ok in
+                    if !ok { self.showMissing(native.name) }
+                }
             })
         }
         sheet.addAction(UIAlertAction(title: "取消", style: .cancel))
@@ -244,6 +274,14 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate {
 
     @objc private func closeAll() {
         model.minimizeAll()
+    }
+
+    private func showMissing(_ name: String) {
+        let alert = UIAlertController(title: "打不开",
+                                      message: "手机里没装「\(name)」，或者它不支持被这样唤起。",
+                                      preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "好", style: .default))
+        present(alert, animated: true)
     }
 
     // MARK: - 键盘

@@ -1,6 +1,6 @@
 import UIKit
 
-/// 手机触控板：单指移动光标 / 双指滚动 / 轻点单击 / 按住拖动窗口 / 绝对点触
+/// 手机触控板：中间那块深色区域 = 大屏的等比缩略图
 final class TrackpadView: UIView {
 
     var onBegin: ((CGPoint) -> Void)?
@@ -9,6 +9,15 @@ final class TrackpadView: UIView {
     var onTap: ((CGPoint) -> Void)?
     var onScroll: ((CGFloat) -> Void)?
 
+    /// 大屏区域（触控板坐标系里那个等比矩形）
+    private(set) var screenFrame: CGRect = .zero
+
+    var screenAspect: CGFloat = 16.0 / 9.0 {
+        didSet { setNeedsLayout() }
+    }
+
+    private let screenView = UIView()
+    private let screenHint = UILabel()
     private var last: CGPoint = .zero
     private var start: CGPoint = .zero
     private var active = false
@@ -17,28 +26,54 @@ final class TrackpadView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = UIColor.white.withAlphaComponent(0.045)
+        backgroundColor = UIColor.white.withAlphaComponent(0.035)
         layer.cornerRadius = 24
         layer.cornerCurve = .continuous
         layer.borderWidth = 1
         layer.borderColor = UIColor.white.withAlphaComponent(0.10).cgColor
         isMultipleTouchEnabled = true
 
-        let hint = UILabel()
-        hint.text = "滑动移光标 · 轻点单击 · 双指滚动"
-        hint.font = .systemFont(ofSize: 12)
-        hint.textColor = UIColor.white.withAlphaComponent(0.26)
-        hint.textAlignment = .center
-        hint.isUserInteractionEnabled = false
-        hint.tag = 77
-        addSubview(hint)
+        screenView.backgroundColor = UIColor(red: 0.03, green: 0.04, blue: 0.07, alpha: 1)
+        screenView.layer.cornerRadius = 12
+        screenView.layer.cornerCurve = .continuous
+        screenView.layer.borderWidth = 1
+        screenView.layer.borderColor = UIColor.white.withAlphaComponent(0.12).cgColor
+        screenView.isUserInteractionEnabled = false
+        addSubview(screenView)
+
+        screenHint.text = "大屏"
+        screenHint.font = .systemFont(ofSize: 10.5)
+        screenHint.textColor = UIColor.white.withAlphaComponent(0.30)
+        screenHint.textAlignment = .center
+        screenHint.isUserInteractionEnabled = false
+        addSubview(screenHint)
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    func setAbsoluteMode(_ on: Bool) {
+        screenView.layer.borderColor = on
+            ? UIColor.systemBlue.withAlphaComponent(0.9).cgColor
+            : UIColor.white.withAlphaComponent(0.12).cgColor
+        screenView.layer.borderWidth = on ? 2 : 1
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
-        viewWithTag(77)?.frame = CGRect(x: 0, y: bounds.midY - 10, width: bounds.width, height: 20)
+        let inset: CGFloat = 14
+        let available = bounds.insetBy(dx: inset, dy: inset)
+        var width = available.width
+        var height = width / max(screenAspect, 0.1)
+        if height > available.height {
+            height = available.height
+            width = height * screenAspect
+        }
+        screenFrame = CGRect(x: available.midX - width / 2,
+                             y: available.midY - height / 2,
+                             width: width, height: height)
+        screenView.frame = screenFrame
+        screenHint.frame = CGRect(x: screenFrame.minX + 8, y: screenFrame.minY + 6,
+                                  width: screenFrame.width - 16, height: 14)
     }
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -72,7 +107,7 @@ final class TrackpadView: UIView {
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard let touch = touches.first else { finish() ; return }
+        guard let touch = touches.first else { finish(); return }
         let point = touch.location(in: self)
         let tapped = active && !moved && !multi
         finish()
