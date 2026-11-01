@@ -105,7 +105,7 @@ final class TrackpadView: UIView {
             }
             holdWork?.cancel()
             holdWork = work
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22, execute: work)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
         }
     }
 
@@ -124,10 +124,10 @@ final class TrackpadView: UIView {
 
         let delta = CGPoint(x: point.x - last.x, y: point.y - last.y)
         last = point
-        if hypot(point.x - start.x, point.y - start.y) > 5 {
-            moved = true
-            holdWork?.cancel()
-        }
+        let distance = hypot(point.x - start.x, point.y - start.y)
+        if distance > 6 { moved = true }
+        // 手指轻微晃动不取消长按，只有明显滑动才取消
+        if distance > 16 { holdWork?.cancel() }
         onMove?(point, delta)
     }
 
