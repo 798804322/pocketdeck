@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import WebKit
 
 /// 窗口内容统一接口
@@ -238,9 +238,20 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
 
     private func beginURL() {
         editingURL = true
-        urlBuffer = urlString
-        urlLabel.text = urlBuffer + "▎"
+        urlBuffer = ""
+        urlLabel.text = " 输入网址或搜索词，回车确认"
+        urlLabel.textColor = UIColor.white
+        urlLabel.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.28)
+        urlLabel.layer.cornerRadius = 6
+        urlLabel.clipsToBounds = true
         bindSinks()
+    }
+
+    private func endURLEditing(text: String?) {
+        editingURL = false
+        urlLabel.backgroundColor = .clear
+        urlLabel.textColor = UIColor.white.withAlphaComponent(0.55)
+        if let text { urlLabel.text = text }
     }
 
     private func bindSinks() {
@@ -257,8 +268,13 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
         }
         model.returnSink = { [weak self] in
             guard let self else { return }
-            self.editingURL = false
-            self.load(self.urlBuffer)
+            let target = self.urlBuffer.trimmingCharacters(in: .whitespacesAndNewlines)
+            if target.isEmpty {
+                self.endURLEditing(text: self.urlString)
+                return
+            }
+            self.endURLEditing(text: target)
+            self.load(target)
         }
     }
 
@@ -362,9 +378,10 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
             if backButton.frame.contains(point) { webView.goBack(); return }
             if forwardButton.frame.contains(point) { webView.goForward(); return }
             if reloadButton.frame.contains(point) { webView.reload(); return }
-            if urlButton.frame.contains(point) { beginURL(); return }
             if zoomButton.frame.contains(point) { cycleZoom(); return }
             if uaButton.frame.contains(point) { toggleUA(); return }
+            // 地址栏整条都能点，直接进编辑
+            beginURL()
             return
         }
         clickInPage(x: point.x, y: point.y - barHeight)
@@ -394,7 +411,11 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate {
     }
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if !editingURL { bindPageInput() }
+        if editingURL {
+            progress.isHidden = true
+            return
+        }
+        bindPageInput()
         urlLabel.text = webView.url?.absoluteString ?? urlString
         urlString = webView.url?.absoluteString ?? urlString
         progress.isHidden = true
