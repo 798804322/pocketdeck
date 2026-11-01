@@ -47,11 +47,17 @@ final class TrackpadView: UIView {
         screenHint.textAlignment = .center
         screenHint.isUserInteractionEnabled = false
         addSubview(screenHint)
+
+        screenView.isHidden = true
+        screenHint.isHidden = true
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     func setAbsoluteMode(_ on: Bool) {
+        // 只有「点触」模式才显示那块大屏框；普通模式恢复成整块触控板
+        screenView.isHidden = !on
+        screenHint.isHidden = !on
         screenView.layer.borderColor = on
             ? UIColor.systemBlue.withAlphaComponent(0.9).cgColor
             : UIColor.white.withAlphaComponent(0.12).cgColor
@@ -60,7 +66,7 @@ final class TrackpadView: UIView {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        let inset: CGFloat = 14
+        let inset: CGFloat = 8
         let available = bounds.insetBy(dx: inset, dy: inset)
         var width = available.width
         var height = width / max(screenAspect, 0.1)
