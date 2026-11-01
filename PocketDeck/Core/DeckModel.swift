@@ -28,6 +28,10 @@ final class DeckModel {
     var absoluteMode = false
     /// 光标速度倍率（手机滑动 1pt，光标移动 cursorSpeed pt）
     var cursorSpeed: CGFloat = 2.4
+    /// 滚动方向反转（有些页面滚动手感反着来）
+    var scrollInverted: Bool = UserDefaults.standard.bool(forKey: "pocketdeck.scrollInverted") {
+        didSet { UserDefaults.standard.set(scrollInverted, forKey: "pocketdeck.scrollInverted") }
+    }
 
     private var resizeStart: CGPoint = .zero
     private var resizeStartFrame: CGRect = .zero

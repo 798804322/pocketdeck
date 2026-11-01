@@ -474,7 +474,37 @@ final class BrowserContentView: BaseContentView, WKNavigationDelegate, WKUIDeleg
     }
 
     override func handleScroll(_ dy: CGFloat) {
-        let js = "window.scrollBy(0, \(Int(dy)));"
+        scrollPage(dy)
+    }
+
+    /// 滚动「光标下面的那个容器」——B站这类页面滚动条不在 window 上
+    private func scrollPage(_ dy: CGFloat) {
+        let local = convert(DeckModel.shared.cursor, from: nil)
+        let x = Double(local.x)
+        let y = Double(local.y - 40)
+        let js = """
+        (function(delta, x, y){
+          delta = Math.round(delta);
+          if (!delta) return 'none';
+          var node = document.elementFromPoint(x, y);
+          while (node && node !== document.body && node !== document.documentElement) {
+            var style = getComputedStyle(node);
+            var oy = style.overflowY;
+            if ((oy === 'auto' || oy === 'scroll') && node.scrollHeight > node.clientHeight + 4) {
+              node.scrollBy(0, delta);
+              return 'inner';
+            }
+            node = node.parentElement;
+          }
+          var se = document.scrollingElement || document.documentElement;
+          if (se && se.scrollHeight > se.clientHeight + 4) {
+            se.scrollBy(0, delta);
+            return 'page';
+          }
+          window.scrollBy(0, delta);
+          return 'window';
+        })(\(Double(dy)), \(x), \(y));
+        """
         webView.evaluateJavaScript(js, completionHandler: nil)
     }
 

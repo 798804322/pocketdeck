@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 import UniformTypeIdentifiers
 
 /// 底部工具栏按钮：图标在上、文字在下
@@ -180,7 +180,11 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
             }
             self.model.click()
         }
-        trackpad.onScroll = { [weak self] dy in self?.model.scroll(dy * 1.6) }
+        trackpad.onScroll = { [weak self] dy in
+            guard let self else { return }
+            let dir: CGFloat = self.model.scrollInverted ? -1 : 1
+            self.model.scroll(dy * 1.6 * dir)
+        }
         trackpad.onTwoFingerTap = { [weak self] in self?.model.cycleWindows() }
         trackpad.onHold = { [weak self] in self?.model.beginDrag() }
         view.addSubview(trackpad)
@@ -358,7 +362,11 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
         let alert = UIAlertController(title: "状态", message: lines.joined(separator: "\n"),
                                       preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "好", style: .default))
+        let title = model.scrollInverted ? "恢复正常滚动方向" : "反转滚动方向"
+        alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+            self?.model.scrollInverted.toggle()
+        })
+        alert.addAction(UIAlertAction(title: "好", style: .cancel))
         present(alert, animated: true)
     }
 
@@ -425,7 +433,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let alert = UIAlertController(title: "打不开",
                                       message: "手机里没装「\(name)」，或者它不支持被这样唤起。",
                                       preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "好", style: .default))
+        alert.addAction(UIAlertAction(title: "好", style: .cancel))
         present(alert, animated: true)
     }
 
