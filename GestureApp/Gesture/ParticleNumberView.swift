@@ -1,8 +1,8 @@
-﻿import UIKit
+import UIKit
 import CoreText
 import SwiftUI
 
-/// 粒子数字：平时散开飘动，识别到手指数时汇聚成数字轮廓
+/// 全屏粒子：平时散在整屏乱飘；识别到数字时汇聚成数字轮廓
 final class ParticleNumberView: UIView {
 
     private struct Particle {
@@ -10,18 +10,18 @@ final class ParticleNumberView: UIView {
         var y: Float = 0
         var vx: Float = 0
         var vy: Float = 0
-        var targetX: Float = 0
-        var targetY: Float = 0
+        var tx: Float = 0
+        var ty: Float = 0
         var size: Float = 2
         var seed: Float = 0
+        var looseness: Float = 0
         var attracted: Bool = false
     }
 
     private var particles: [Particle] = []
-    private let particleCount = 1400
+    private let particleCount = 2600
 
     private var digit: Int = -1
-    private var targets: [CGPoint] = []
     private var cache: [Int: [CGPoint]] = [:]
 
     private var link: CADisplayLink?
@@ -33,8 +33,8 @@ final class ParticleNumberView: UIView {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        backgroundColor = .clear
-        isOpaque = false
+        backgroundColor = .black
+        isOpaque = true
         isUserInteractionEnabled = false
         seed()
     }
@@ -47,22 +47,44 @@ final class ParticleNumberView: UIView {
         link?.invalidate()
     }
 
+    private var halfW: Float {
+        Float(max(1, bounds.width)) * 0.5
+    }
+
+    private var halfH: Float {
+        Float(max(1, bounds.height)) * 0.5
+    }
+
     // MARK: - 初始化
 
     private func seed() {
+        let hw = halfW
+        let hh = halfH
         var list: [Particle] = []
         list.reserveCapacity(particleCount)
+
         for _ in 0..<particleCount {
             var p = Particle()
-            p.x = Float.random(in: -0.55...0.55)
-            p.y = Float.random(in: -0.55...0.55)
-            p.vx = Float.random(in: -0.05...0.05)
-            p.vy = Float.random(in: -0.05...0.05)
-            p.size = Float.random(in: 1.1...2.6)
+            p.x = Float.random(in: -hw...hw)
+            p.y = Float.random(in: -hh...hh)
+            p.vx = Float.random(in: -26...26)
+            p.vy = Float.random(in: -26...26)
+            p.size = Float.random(in: 0.9...2.4)
             p.seed = Float.random(in: 0...(2 * .pi))
+            p.looseness = Float.random(in: 0...1)
             list.append(p)
         }
         particles = list
+    }
+
+    /// 屏幕尺寸变化时把越界的粒子拉回来
+    private func reseedIfNeeded() {
+        let hw = halfW
+        let hh = halfH
+        for i in particles.indices {
+            if abs(particles[i].x) > hw { particles[i].x = Float.random(in: -hw...hw) }
+            if abs(particles[i].y) > hh { particles[i].y = Float.random(in: -hh...hh) }
+        }
     }
 
     // MARK: - 对外
@@ -72,31 +94,26 @@ final class ParticleNumberView: UIView {
         digit = value
 
         if value < 0 {
-            disperse()
+            for i in particles.indices {
+                particles[i].attracted = false
+            }
             return
         }
 
-        let points = outlinePoints(for: value)
-        guard !points.isEmpty else { return }
-        targets = points
+        let outline = outlinePoints(for: value)
+        guard !outline.isEmpty else { return }
 
-        // 先向外炸一下，再汇聚，看起来更有"重组"的感觉
+        let side = Float(min(bounds.height * 0.80, bounds.width * 1.5))
+        let shuffled = outline.shuffled()
+
         for i in particles.indices {
-            particles[i].vx += Float.random(in: -1.4...1.4)
-            particles[i].vy += Float.random(in: -1.4...1.4)
-            let index = Int.random(in: 0..<targets.count)
-            let jitter = Float(0.004)
-            particles[i].targetX = Float(targets[index].x) + Float.random(in: -jitter...jitter)
-            particles[i].targetY = Float(targets[index].y) + Float.random(in: -jitter...jitter)
+            let point = shuffled[i % shuffled.count]
+            // 先向外炸一下，再收拢，重组感更强
+            particles[i].vx += Float.random(in: -180...180)
+            particles[i].vy += Float.random(in: -180...180)
+            particles[i].tx = Float(point.x) * side
+            particles[i].ty = -Float(point.y) * side
             particles[i].attracted = true
-        }
-    }
-
-    private func disperse() {
-        for i in particles.indices {
-            particles[i].attracted = false
-            particles[i].vx += Float.random(in: -0.6...0.6)
-            particles[i].vy += Float.random(in: -0.6...0.6)
         }
     }
 
@@ -120,6 +137,7 @@ final class ParticleNumberView: UIView {
     override func layoutSubviews() {
         super.layoutSubviews()
         makeBitmap()
+        reseedIfNeeded()
     }
 
     private func makeBitmap() {
@@ -155,36 +173,42 @@ final class ParticleNumberView: UIView {
     // MARK: - 物理
 
     private func step(_ dt: Float) {
-        let damping: Float = 5.6
-        let pull: Float = 26.0
+        let hw = halfW - 4
+        let hh = halfH - 4
+        let damping: Float = 6.2
 
         for i in particles.indices {
             var p = particles[i]
 
             if p.attracted {
-                let ax = (p.targetX - p.x) * pull
-                let ay = (p.targetY - p.y) * pull
-                p.vx += ax * dt
-                p.vy += ay * dt
+                // 松散的粒子不完全归位，形成"毛边"，看起来更乱更活
+                let wobble = p.looseness * 26
+                let tx = p.tx + sin(time * 1.7 + p.seed) * wobble
+                let ty = p.ty + cos(time * 1.4 + p.seed * 1.3) * wobble
+
+                let pull: Float = 26 - p.looseness * 14
+                p.vx += (tx - p.x) * pull * dt
+                p.vy += (ty - p.y) * pull * dt
+
+                p.vx += sin(time * 3.1 + p.seed * 2) * 22 * dt * (0.4 + p.looseness)
+                p.vy += cos(time * 2.7 + p.seed) * 22 * dt * (0.4 + p.looseness)
+
                 p.vx *= (1 - damping * dt)
                 p.vy *= (1 - damping * dt)
-                // 轻微呼吸抖动，别像死图
-                p.vx += sin(time * 2 + p.seed) * 0.006
-                p.vy += cos(time * 1.7 + p.seed) * 0.006
             } else {
-                p.vx += sin(time * 0.6 + p.seed) * 0.03
-                p.vy += cos(time * 0.5 + p.seed * 1.3) * 0.03
-                p.vx *= (1 - 0.6 * dt)
-                p.vy *= (1 - 0.6 * dt)
+                p.vx += sin(time * 0.7 + p.seed) * 60 * dt
+                p.vy += cos(time * 0.6 + p.seed * 1.4) * 60 * dt
+                p.vx *= (1 - 0.9 * dt)
+                p.vy *= (1 - 0.9 * dt)
             }
 
             p.x += p.vx * dt
             p.y += p.vy * dt
 
-            if p.x < -0.75 { p.x = -0.75; p.vx = abs(p.vx) }
-            if p.x > 0.75 { p.x = 0.75; p.vx = -abs(p.vx) }
-            if p.y < -0.75 { p.y = -0.75; p.vy = abs(p.vy) }
-            if p.y > 0.75 { p.y = 0.75; p.vy = -abs(p.vy) }
+            if p.x < -hw { p.x = -hw; p.vx = abs(p.vx) * 0.6 }
+            if p.x > hw { p.x = hw; p.vx = -abs(p.vx) * 0.6 }
+            if p.y < -hh { p.y = -hh; p.vy = abs(p.vy) * 0.6 }
+            if p.y > hh { p.y = hh; p.vy = -abs(p.vy) * 0.6 }
 
             particles[i] = p
         }
@@ -195,26 +219,25 @@ final class ParticleNumberView: UIView {
 
         let w = bounds.width
         let h = bounds.height
-        let side = min(w, h) * 0.78
         let cx = w * 0.5
         let cy = h * 0.5
 
         ctx.setBlendMode(.normal)
-        ctx.setFillColor(UIColor(white: 0, alpha: 0.22).cgColor)
+        ctx.setFillColor(UIColor(white: 0, alpha: 0.26).cgColor)
         ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
 
         ctx.setBlendMode(.plusLighter)
 
         for p in particles {
-            let x = cx + CGFloat(p.x) * side
-            let y = cy - CGFloat(p.y) * side
+            let x = cx + CGFloat(p.x)
+            let y = cy + CGFloat(p.y)
             let s = CGFloat(p.size)
-            let alpha: CGFloat = p.attracted ? 0.95 : 0.55
+            let alpha: CGFloat = p.attracted ? 0.95 : 0.5
 
             if p.attracted {
                 ctx.setFillColor(neon.withAlphaComponent(alpha).cgColor)
             } else {
-                ctx.setFillColor(UIColor(red: 0.30, green: 0.85, blue: 0.75, alpha: alpha).cgColor)
+                ctx.setFillColor(UIColor(red: 0.28, green: 0.82, blue: 0.72, alpha: alpha).cgColor)
             }
             ctx.fillEllipse(in: CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s))
         }
@@ -241,7 +264,6 @@ final class ParticleNumberView: UIView {
         let line = CTLineCreateWithAttributedString(attributed)
 
         var raw: [CGPoint] = []
-
         let runs = CTLineGetGlyphRuns(line) as NSArray
 
         for case let run as CTRun in runs {
@@ -319,7 +341,7 @@ final class ParticleNumberView: UIView {
 
     private func appendLine(_ a: CGPoint, _ b: CGPoint, offset: CGPoint, into pts: inout [CGPoint]) {
         let length = hypot(b.x - a.x, b.y - a.y)
-        let steps = max(1, Int(length / 2.4))
+        let steps = max(1, Int(length / 3.0))
         for i in 0...steps {
             let t = CGFloat(i) / CGFloat(steps)
             pts.append(CGPoint(x: a.x + (b.x - a.x) * t + offset.x,
@@ -329,7 +351,7 @@ final class ParticleNumberView: UIView {
 
     private func appendQuad(_ a: CGPoint, _ c: CGPoint, _ b: CGPoint, offset: CGPoint, into pts: inout [CGPoint]) {
         let approx = hypot(b.x - a.x, b.y - a.y) + hypot(c.x - a.x, c.y - a.y)
-        let steps = max(6, Int(approx / 2.4))
+        let steps = max(5, Int(approx / 3.0))
         for i in 0...steps {
             let t = CGFloat(i) / CGFloat(steps)
             let mt = 1 - t
@@ -341,7 +363,7 @@ final class ParticleNumberView: UIView {
 
     private func appendCubic(_ a: CGPoint, _ c1: CGPoint, _ c2: CGPoint, _ b: CGPoint, offset: CGPoint, into pts: inout [CGPoint]) {
         let approx = hypot(b.x - a.x, b.y - a.y) + hypot(c1.x - a.x, c1.y - a.y) + hypot(c2.x - b.x, c2.y - b.y)
-        let steps = max(8, Int(approx / 2.4))
+        let steps = max(6, Int(approx / 3.0))
         for i in 0...steps {
             let t = CGFloat(i) / CGFloat(steps)
             let mt = 1 - t
