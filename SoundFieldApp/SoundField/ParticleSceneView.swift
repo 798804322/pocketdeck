@@ -186,7 +186,8 @@ final class ParticleSceneView: UIView {
                                    startCenter: CGPoint(x: cx, y: cy),
                                    startRadius: 0,
                                    endCenter: CGPoint(x: cx, y: cy),
-                                   endRadius: max(10, coreR * 3.2))
+                                   endRadius: max(10, coreR * 3.2),
+                                   options: [.drawsAfterEndLocation])
         }
 
         ctx.setBlendMode(.normal)
