@@ -1,5 +1,6 @@
 ﻿import UIKit
 import CoreText
+import SwiftUI
 
 /// 粒子数字：平时散开飘动，识别到手指数时汇聚成数字轮廓
 final class ParticleNumberView: UIView {
@@ -241,9 +242,9 @@ final class ParticleNumberView: UIView {
 
         var raw: [CGPoint] = []
 
-        guard let runs = CTLineGetGlyphRuns(line) as? [CTRun] else { return [] }
+        let runs = CTLineGetGlyphRuns(line) as NSArray
 
-        for run in runs {
+        for case let run as CTRun in runs {
             let count = CTRunGetGlyphCount(run)
             guard count > 0 else { continue }
 
@@ -253,7 +254,8 @@ final class ParticleNumberView: UIView {
             CTRunGetPositions(run, CFRange(location: 0, length: count), &positions)
 
             let runAttributes = CTRunGetAttributes(run) as NSDictionary
-            guard let runFont = runAttributes[kCTFontAttributeName] as? CTFont else { continue }
+            guard runAttributes[kCTFontAttributeName] != nil else { continue }
+            let runFont = runAttributes[kCTFontAttributeName] as! CTFont
 
             for i in 0..<count {
                 guard let glyphPath = CTFontCreatePathForGlyph(runFont, glyphs[i], nil) else { continue }
