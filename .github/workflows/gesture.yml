@@ -1,0 +1,93 @@
+name: Build Gesture
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  gesture:
+    runs-on: macos-15
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: GestureApp
+        run: xcodegen generate
+
+      - name: Build (unsigned)
+        id: build
+        working-directory: GestureApp
+        run: |
+          set +e
+          xcodebuild \
+            -project Gesture.xcodeproj \
+            -scheme Gesture \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build > build.log 2>&1
+          status=$?
+          echo "xcodebuild exit code: $status"
+          tail -n 60 build.log
+          if [ $status -ne 0 ]; then
+            echo "----- 手势编译错误摘要 -----"
+            grep -m 12 "error:" build.log | while IFS= read -r line; do
+              echo "::error title=gesture::$line"
+              echo "$line"
+            done
+            exit $status
+          fi
+
+      - name: Record build log on failure
+        if: failure()
+        run: |
+          git config user.name "pocketdeck-ci"
+          git config user.email "ci@users.noreply.github.com"
+          {
+            echo "gesture build failed: $(date -u)"
+            echo ""
+            echo "== errors =="
+            grep -n "error:" GestureApp/build.log | head -n 40 || true
+            echo ""
+            echo "== tail 80 =="
+            tail -n 80 GestureApp/build.log || true
+          } > gesture-build-error.txt
+          git add gesture-build-error.txt
+          git commit -m "ci: record gesture build error [skip ci]" || true
+          git push || true
+
+      - name: Package unsigned IPA
+        run: |
+          set -e
+          APP_PATH=$(find GestureApp/build -name "Gesture.app" -type d | head -n 1)
+          echo "Found app: $APP_PATH"
+          test -n "$APP_PATH"
+          rm -rf Payload Gesture-unsigned.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qry Gesture-unsigned.ipa Payload
+          ls -lh Gesture-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gesture-ipa
+          path: Gesture-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 30

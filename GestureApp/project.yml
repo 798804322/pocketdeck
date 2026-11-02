@@ -1,0 +1,31 @@
+name: Gesture
+options:
+  bundleIdPrefix: com.pocketdeck
+  deploymentTarget:
+    iOS: "15.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+    SWIFT_STRICT_CONCURRENCY: minimal
+
+targets:
+  Gesture:
+    type: application
+    platform: iOS
+    sources:
+      - path: Gesture
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.pocketdeck.gesture
+        PRODUCT_NAME: Gesture
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: "NO"
+        INFOPLIST_FILE: Gesture/Info.plist
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+    scheme:
+      testTargets: []
+      gatherCoverageData: false
