@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 /// 手机触控板：中间那块深色区域 = 大屏的等比缩略图
 final class TrackpadView: UIView {

@@ -1,4 +1,4 @@
-﻿name: SoundField
+name: SoundField
 options:
   bundleIdPrefix: com.pocketdeck
   deploymentTarget:

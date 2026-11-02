@@ -68,6 +68,8 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
     private var appsButton: PadButton!
     private var pointButton: PadButton!
     private var closeButton: PadButton!
+    private var gamepadButton: PadButton!
+    private let gamepad = GamepadView()
     private var buttons: [PadButton] = []
     private var keyboardHeight: CGFloat = 0
     private var lastFieldText = ""
@@ -194,15 +196,23 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         appsButton = PadButton(title: "应用", symbol: "list.bullet")
         pointButton = PadButton(title: "点触", symbol: "hand.point.up.left")
         closeButton = PadButton(title: "收窗", symbol: "rectangle.compress.vertical")
+        gamepadButton = PadButton(title: "手柄", symbol: "gamecontroller")
 
         keyboardButton.addTarget(self, action: #selector(showKeyboard), for: .touchUpInside)
         startButton.addTarget(self, action: #selector(toggleStart), for: .touchUpInside)
         appsButton.addTarget(self, action: #selector(showApps(_:)), for: .touchUpInside)
         pointButton.addTarget(self, action: #selector(togglePoint), for: .touchUpInside)
         closeButton.addTarget(self, action: #selector(closeAll), for: .touchUpInside)
+        gamepadButton.addTarget(self, action: #selector(toggleGamepad), for: .touchUpInside)
 
-        buttons = [keyboardButton, startButton, appsButton, pointButton, closeButton]
+        buttons = [keyboardButton, startButton, appsButton, pointButton, gamepadButton, closeButton]
         buttons.forEach { view.addSubview($0) }
+
+        gamepad.isHidden = true
+        gamepad.onCommand = { [weak self] command in
+            self?.model.sendGame(command)
+        }
+        view.addSubview(gamepad)
 
         keyboardField.delegate = self
         keyboardField.addTarget(self, action: #selector(fieldChanged), for: .editingChanged)
@@ -287,8 +297,9 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let bottomInset = keyboardUp ? max(bottom, keyboardHeight) : bottom
         let rowY = h - bottomInset - (keyboardUp ? 4 : 6) - rowHeight
         for button in buttons { button.isHidden = keyboardUp }
-        let gap: CGFloat = 8
-        let buttonWidth = (w - 32 - gap * 4) / 5
+        let gap: CGFloat = 6
+        let count = CGFloat(max(1, buttons.count))
+        let buttonWidth = (w - 32 - gap * (count - 1)) / count
         for (index, button) in buttons.enumerated() {
             button.frame = CGRect(x: 16 + CGFloat(index) * (buttonWidth + gap),
                                   y: rowY, width: buttonWidth, height: rowHeight)
@@ -298,6 +309,7 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
         let padBottom = keyboardUp ? (h - keyboardHeight - 8) : (rowY - 10)
         trackpad.frame = CGRect(x: 14, y: padTop, width: w - 28,
                                 height: max(120, padBottom - padTop))
+        gamepad.frame = trackpad.frame
         emptyHint.frame = CGRect(x: 0, y: trackpad.bounds.midY - 34,
                                  width: trackpad.bounds.width, height: 44)
         keyboardField.frame = CGRect(x: 0, y: 0, width: 1, height: 1)
@@ -427,6 +439,14 @@ final class PhoneViewController: UIViewController, UITextFieldDelegate, UIDocume
 
     @objc private func closeAll() {
         model.minimizeAll()
+    }
+
+    @objc private func toggleGamepad() {
+        gamepad.isHidden.toggle()
+        if !gamepad.isHidden {
+            view.endEditing(true)
+            gamepad.setNeedsLayout()
+        }
     }
 
     private func showMissing(_ name: String) {

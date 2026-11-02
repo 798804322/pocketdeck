@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 /// 可以一键打开的网页应用
 struct WebApp: Identifiable {

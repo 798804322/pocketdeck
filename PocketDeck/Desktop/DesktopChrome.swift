@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 /// 桌面壁纸
 final class WallpaperView: UIView {

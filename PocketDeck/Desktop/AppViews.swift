@@ -1030,6 +1030,7 @@ enum DeckAppFactory {
         case .calculator: return CalculatorContentView()
         case .terminal:   return TerminalContentView()
         case .clock:      return ClockContentView()
+        case .snake:      return SnakeContentView()
         }
     }
 }

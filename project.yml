@@ -1,4 +1,4 @@
-﻿name: PocketDeck
+name: PocketDeck
 options:
   bundleIdPrefix: com.pocketdeck
   deploymentTarget:
@@ -28,8 +28,8 @@ targets:
         # 关键：直接指定 plist 文件，不让 XcodeGen 重新生成
         # （之前 version / 启动画面 / 状态栏这些键就是被重新生成时丢掉的）
         INFOPLIST_FILE: PocketDeck/Info.plist
-        MARKETING_VERSION: "2.2"
-        CURRENT_PROJECT_VERSION: "22"
+        MARKETING_VERSION: "2.3"
+        CURRENT_PROJECT_VERSION: "23"
     scheme:
       testTargets: []
       gatherCoverageData: false

@@ -1,8 +1,8 @@
-﻿import UIKit
+import UIKit
 
 /// 桌面上的应用
 enum DeckApp: String, CaseIterable {
-    case notes, browser, files, calculator, terminal, clock
+    case notes, browser, files, calculator, terminal, clock, snake
 
     var title: String {
         switch self {
@@ -12,6 +12,7 @@ enum DeckApp: String, CaseIterable {
         case .calculator: return "计算器"
         case .terminal:   return "终端"
         case .clock:      return "时钟"
+        case .snake:      return "贪吃蛇"
         }
     }
 
@@ -23,6 +24,7 @@ enum DeckApp: String, CaseIterable {
         case .calculator: return "plus.forwardslash.minus"
         case .terminal:   return "terminal"
         case .clock:      return "clock"
+        case .snake:      return "gamecontroller.fill"
         }
     }
 
@@ -34,6 +36,7 @@ enum DeckApp: String, CaseIterable {
         case .calculator: return UIColor(red: 0.55, green: 0.60, blue: 0.70, alpha: 1)
         case .terminal:   return UIColor(red: 0.18, green: 0.20, blue: 0.26, alpha: 1)
         case .clock:      return UIColor(red: 0.50, green: 0.55, blue: 0.64, alpha: 1)
+        case .snake:      return UIColor(red: 0.30, green: 0.88, blue: 0.60, alpha: 1)
         }
     }
 
@@ -45,8 +48,18 @@ enum DeckApp: String, CaseIterable {
         case .calculator: return CGSize(width: 360, height: 470)
         case .terminal:   return CGSize(width: 720, height: 420)
         case .clock:      return CGSize(width: 420, height: 260)
+        case .snake:      return CGSize(width: 760, height: 560)
         }
     }
+}
+
+/// 手柄指令
+enum GameCommand {
+    case up
+    case down
+    case left
+    case right
+    case action
 }
 
 struct DeckWindow: Identifiable {

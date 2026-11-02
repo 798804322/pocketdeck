@@ -1,4 +1,4 @@
-﻿import UIKit
+import UIKit
 
 extension Notification.Name {
     static let deckChanged = Notification.Name("deck.changed")
@@ -49,6 +49,12 @@ final class DeckModel {
     var contentTap: ((UUID, CGPoint) -> Void)?
     var contentFocus: ((UUID) -> Void)?
     var contentDrag: ((UUID, CGPoint, DragPhase) -> Void)?
+    /// 手机手柄发指令给大屏上的游戏
+    var gameSink: ((GameCommand) -> Void)?
+
+    func sendGame(_ command: GameCommand) {
+        gameSink?(command)
+    }
 
     /// 网页里点了「选择文件」：手机端注册弹窗，拿到结果再回填
     var pickFileHandler: (() -> Void)?
@@ -364,9 +370,9 @@ final class DeckModel {
     /// 内置应用（3 列）
     func startMenuItemFrame(_ index: Int) -> CGRect {
         let menu = startMenuFrame()
-        let cell = CGSize(width: 106, height: 88)
-        let x = menu.minX + 14 + CGFloat(index % 3) * (cell.width + 6)
-        let y = menu.minY + 44 + CGFloat(index / 3) * (cell.height + 6)
+        let cell = CGSize(width: 82, height: 88)
+        let x = menu.minX + 14 + CGFloat(index % 4) * (cell.width + 6)
+        let y = menu.minY + 44 + CGFloat(index / 4) * (cell.height + 6)
         return CGRect(x: x, y: y, width: cell.width, height: cell.height)
     }
 
