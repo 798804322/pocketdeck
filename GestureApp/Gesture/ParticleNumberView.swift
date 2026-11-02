@@ -103,7 +103,7 @@ final class ParticleNumberView: UIView {
         let outline = outlinePoints(for: value)
         guard !outline.isEmpty else { return }
 
-        let side = Float(min(bounds.height * 0.80, bounds.width * 1.5))
+        let side = Float(min(bounds.height * 0.66, bounds.width * 1.24))
         let shuffled = outline.shuffled()
 
         for i in particles.indices {
