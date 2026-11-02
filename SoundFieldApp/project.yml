@@ -1,4 +1,4 @@
-name: SoundField
+﻿name: SoundField
 options:
   bundleIdPrefix: com.pocketdeck
   deploymentTarget:
@@ -24,7 +24,7 @@ targets:
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: "NO"
         INFOPLIST_FILE: SoundField/Info.plist
-        MARKETING_VERSION: "1.0"
+        MARKETING_VERSION: "1.1"
         CURRENT_PROJECT_VERSION: "1"
     scheme:
       testTargets: []

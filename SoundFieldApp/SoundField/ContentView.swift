@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import UIKit
 
 struct ParticleCanvas: UIViewRepresentable {
@@ -11,6 +12,7 @@ struct ParticleCanvas: UIViewRepresentable {
 
 struct ContentView: View {
     @ObservedObject private var audio = AudioLevels.shared
+    @State private var showPicker = false
     @State private var showHint = true
 
     var body: some View {
@@ -20,15 +22,26 @@ struct ContentView: View {
                 .ignoresSafeArea()
 
             VStack {
+                topBar
                 Spacer()
                 bottomBar
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 10)
             .padding(.bottom, 26)
         }
         .preferredColorScheme(.dark)
         .statusBarHidden(true)
+        .fileImporter(isPresented: $showPicker,
+                      allowedContentTypes: [.audio],
+                      allowsMultipleSelection: false) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                audio.importAndPlay(url: url)
+                showHint = false
+            }
+        }
         .onAppear {
-            audio.start()
+            audio.startMic()
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) {
                 withAnimation(.easeOut(duration: 0.8)) {
                     showHint = false
@@ -36,6 +49,59 @@ struct ContentView: View {
             }
         }
     }
+
+    // MARK: - 顶部工具条
+
+    private var topBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                showPicker = true
+            } label: {
+                pill(icon: "music.note.list", text: "导入歌曲")
+            }
+
+            if audio.source == .player {
+                Button {
+                    audio.togglePlay()
+                } label: {
+                    Image(systemName: audio.playing ? "pause.fill" : "play.fill")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(width: 30, height: 30)
+                        .background(Color.white.opacity(0.13))
+                        .clipShape(Circle())
+                }
+
+                Text(audio.trackName)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.55))
+                    .lineLimit(1)
+            } else {
+                Button {
+                    audio.startMic()
+                } label: {
+                    pill(icon: "mic.fill", text: "麦克风")
+                }
+            }
+
+            Spacer()
+        }
+    }
+
+    private func pill(icon: String, text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon)
+            Text(text)
+        }
+        .font(.system(size: 12, weight: .semibold))
+        .foregroundColor(.white.opacity(0.9))
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
+        .background(Color.white.opacity(0.13))
+        .cornerRadius(14)
+    }
+
+    // MARK: - 底部提示
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
@@ -55,7 +121,7 @@ struct ContentView: View {
                         .cornerRadius(18)
                 }
             } else if showHint {
-                Text("对着音响放歌，效果最好")
+                Text(audio.source == .player ? "正在播放，屏幕会跟着节奏动" : "对着音响放歌，或者导入一首歌")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(.white.opacity(0.62))
                     .padding(.horizontal, 18)

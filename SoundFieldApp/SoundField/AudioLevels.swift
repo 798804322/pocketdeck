@@ -2,51 +2,65 @@ import Foundation
 import AVFoundation
 import Combine
 
-/// 实时分析麦克风，拆成低频 / 中频 / 高频三路能量
+/// 实时分析声音，拆成低频 / 中频 / 高频三路能量
+/// 两种来源：麦克风（对着音响拍）、内部播放器（导入歌曲，最准）
 final class AudioLevels: ObservableObject {
     static let shared = AudioLevels()
 
+    enum Source {
+        case mic
+        case player
+    }
+
     @Published var running = false
     @Published var denied = false
+    @Published var source: Source = .mic
+    @Published var trackName: String = ""
+    @Published var playing = false
 
-    // 渲染线程直接读这几个值（浮点读写竞争对视觉无影响）
+    // 渲染线程直接读（浮点竞争对视觉无影响）
     var bass: Float = 0
     var mid: Float = 0
     var treble: Float = 0
     var level: Float = 0
 
     private let engine = AVAudioEngine()
-    private var started = false
+    private let player = AVAudioPlayerNode()
+    private var playerAttached = false
+    private var micReady = false
 
-    // 单极滤波器的状态
     private var lp80: Float = 0
     private var lp200: Float = 0
     private var lp2000: Float = 0
     private var lp4000: Float = 0
 
+    /// 自动增益：让小声的歌也能把画面炸开
+    private var agcPeak: Float = 0.02
+
     private init() {}
 
-    func start() {
-        if started { return }
-        let session = AVAudioSession.sharedInstance()
+    // MARK: - 麦克风模式
 
-        session.requestRecordPermission { [weak self] granted in
+    func startMic() {
+        guard !micReady else { return }
+
+        AVAudioSession.sharedInstance().requestRecordPermission { [weak self] granted in
             guard let self else { return }
             guard granted else {
                 DispatchQueue.main.async { self.denied = true }
                 return
             }
-            DispatchQueue.main.async {
-                self.begin()
-            }
+            DispatchQueue.main.async { self.beginMic() }
         }
     }
 
-    private func begin() {
-        guard !started else { return }
+    private func beginMic() {
+        stopPlayer()
+
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .measurement, options: [.mixWithOthers, .defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .measurement,
+                                    options: [.mixWithOthers, .defaultToSpeaker])
             try session.setActive(true, options: [])
         } catch {
             return
@@ -62,12 +76,101 @@ final class AudioLevels: ObservableObject {
         engine.prepare()
         do {
             try engine.start()
-            started = true
+            micReady = true
             running = true
+            if source != .player { source = .mic }
         } catch {
             running = false
         }
     }
+
+    private func stopMic() {
+        guard micReady else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.stop()
+        micReady = false
+    }
+
+    // MARK: - 播放器模式（导入歌曲，最准）
+
+    func importAndPlay(url: URL) {
+        let access = url.startAccessingSecurityScopedResource()
+        let target = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(url.lastPathComponent)
+
+        if target.path != url.path {
+            try? FileManager.default.removeItem(at: target)
+            try? FileManager.default.copyItem(at: url, to: target)
+        }
+        if access { url.stopAccessingSecurityScopedResource() }
+
+        let playURL = FileManager.default.fileExists(atPath: target.path) ? target : url
+        playTrack(url: playURL)
+    }
+
+    private func playTrack(url: URL) {
+        stopMic()
+        stopPlayer()
+
+        do {
+            let audioFile = try AVAudioFile(forReading: url)
+
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [])
+            try session.setActive(true, options: [])
+
+            if !playerAttached {
+                engine.attach(player)
+                playerAttached = true
+            }
+            engine.connect(player, to: engine.mainMixerNode, format: audioFile.processingFormat)
+
+            let mixer = engine.mainMixerNode
+            mixer.removeTap(onBus: 0)
+            mixer.installTap(onBus: 0, bufferSize: 1024, format: nil) { [weak self] buffer, _ in
+                self?.process(buffer)
+            }
+
+            engine.prepare()
+            try engine.start()
+
+            player.scheduleFile(audioFile, at: nil) { [weak self] in
+                DispatchQueue.main.async { self?.playing = false }
+            }
+            player.play()
+
+            playing = true
+            running = true
+            source = .player
+            trackName = url.deletingPathExtension().lastPathComponent
+            denied = false
+        } catch {
+            playing = false
+            running = false
+        }
+    }
+
+    private func stopPlayer() {
+        guard playerAttached else { return }
+        player.stop()
+        engine.mainMixerNode.removeTap(onBus: 0)
+        engine.stop()
+        engine.disconnectNodeOutput(player)
+        playing = false
+    }
+
+    func togglePlay() {
+        guard source == .player, playerAttached else { return }
+        if playing {
+            player.pause()
+            playing = false
+        } else {
+            player.play()
+            playing = true
+        }
+    }
+
+    // MARK: - 音频分析
 
     private func process(_ buffer: AVAudioPCMBuffer) {
         guard let data = buffer.floatChannelData else { return }
@@ -110,15 +213,25 @@ final class AudioLevels: ObservableObject {
         let h = sqrt(sumHigh * norm)
         let l = sqrt(sumAll * norm)
 
-        bass = ease(bass, min(1.0, b * 16.0))
-        mid = ease(mid, min(1.0, m * 24.0))
-        treble = ease(treble, min(1.0, h * 34.0))
-        level = ease(level, min(1.0, l * 12.0))
+        // 自动增益：跟着最响的部分走，小声也能炸
+        let peakNow = max(b, max(m, h))
+        if peakNow > agcPeak {
+            agcPeak = peakNow
+        } else {
+            agcPeak = max(0.004, agcPeak * 0.9994)
+        }
+        let gain = min(26.0, 0.50 / max(0.004, agcPeak))
+        let gate: Float = l < 0.0028 ? 0.0 : 1.0
+
+        bass = ease(bass, min(1.0, b * gain) * gate)
+        mid = ease(mid, min(1.0, m * gain * 1.15) * gate)
+        treble = ease(treble, min(1.0, h * gain * 1.6) * gate)
+        level = ease(level, min(1.0, l * gain) * gate)
     }
 
-    /// 起得快、落得慢，视觉上更有"呼吸感"
+    /// 起得快、落得慢，视觉上更有呼吸感
     private func ease(_ old: Float, _ new: Float) -> Float {
-        let k: Float = new > old ? 0.62 : 0.09
+        let k: Float = new > old ? 0.60 : 0.085
         return old + (new - old) * k
     }
 }
