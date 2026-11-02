@@ -41,7 +41,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            audio.startMic()
+            // 不自动开麦克风：一开就会打断别的 App 的音乐
             DispatchQueue.main.asyncAfter(deadline: .now() + 7) {
                 withAnimation(.easeOut(duration: 0.8)) {
                     showHint = false
@@ -120,6 +120,25 @@ struct ContentView: View {
                         .background(Color.white.opacity(0.16))
                         .cornerRadius(18)
                 }
+            } else if !audio.running {
+                Button {
+                    audio.startMic()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform")
+                        Text("开始聆听")
+                    }
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 26)
+                    .padding(.vertical, 12)
+                    .background(Color.white.opacity(0.16))
+                    .cornerRadius(22)
+                }
+                Text("点它才会听声音 —— 会暂停其他 App 的音乐，\n想让画面跟着自己的歌，用左上角「导入歌曲」")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.45))
+                    .multilineTextAlignment(.center)
             } else if showHint {
                 Text(audio.source == .player ? "正在播放，屏幕会跟着节奏动" : "对着音响放歌，或者导入一首歌")
                     .font(.system(size: 13, weight: .medium))

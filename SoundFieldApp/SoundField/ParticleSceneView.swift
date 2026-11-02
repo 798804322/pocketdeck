@@ -16,6 +16,11 @@ final class ParticleSceneView: UIView {
     private var displayLink: CADisplayLink?
     private var lastTime: CFTimeInterval = 0
     private var bitmap: CGContext?
+    private var elapsed: Float = 0
+    private var energyBass: Float = 0
+    private var energyMid: Float = 0
+    private var energyTreble: Float = 0
+    private var energyLevel: Float = 0
 
     private let particleCount = 900
 
@@ -111,10 +116,18 @@ final class ParticleSceneView: UIView {
     // MARK: - 物理
 
     private func step(_ dt: Float) {
+        elapsed += dt
         let audio = AudioLevels.shared
-        let bass = audio.bass
-        let mid = audio.mid
-        let treble = audio.treble
+        let running = audio.running
+        // 没在听的时候让星云自己慢慢呼吸，画面不显死
+        let idle = (sin(elapsed * 0.9) * 0.5 + 0.5) * 0.20
+        let bass = running ? audio.bass : idle
+        let mid = running ? audio.mid : 0.04
+        let treble = running ? audio.treble : 0.02
+        energyBass = bass
+        energyMid = mid
+        energyTreble = treble
+        energyLevel = running ? audio.level : idle * 0.5
 
         for i in 0..<particles.count {
             var p = particles[i]
@@ -145,9 +158,8 @@ final class ParticleSceneView: UIView {
 
         let w = bounds.width
         let h = bounds.height
-        let audio = AudioLevels.shared
-        let treble = CGFloat(audio.treble)
-        let level = CGFloat(audio.level)
+        let treble = CGFloat(energyTreble)
+        let level = CGFloat(energyLevel)
 
         // 拖尾：每帧盖一层半透明黑
         ctx.setBlendMode(.normal)
