@@ -82,6 +82,7 @@ final class SkeletonLayerView: UIView {
 final class CameraStageView: UIView {
 
     private let previewLayer = AVCaptureVideoPreviewLayer()
+    private let backdrop = UIView()
     private let skeleton = SkeletonLayerView()
 
     override init(frame: CGRect) {
@@ -89,6 +90,11 @@ final class CameraStageView: UIView {
         backgroundColor = .black
         previewLayer.videoGravity = .resizeAspectFill
         layer.addSublayer(previewLayer)
+
+        // 摄像头画面不显示：只留骨架和数字
+        backdrop.backgroundColor = .black
+        addSubview(backdrop)
+
         addSubview(skeleton)
         skeleton.preview = previewLayer
     }
@@ -125,6 +131,7 @@ final class CameraStageView: UIView {
         previewLayer.frame = bounds
         CATransaction.commit()
 
+        backdrop.frame = bounds
         skeleton.frame = bounds
         applyPreviewOrientation()
     }
