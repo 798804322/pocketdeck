@@ -10,8 +10,9 @@ final class ParticleNumberView: UIView {
         var y: Float = 0
         var vx: Float = 0
         var vy: Float = 0
-        var tx: Float = 0
-        var ty: Float = 0
+        /// 字形上的归一化偏移（-1~1）；真正目标 = 跟手的中心 + 偏移 × 字号
+        var ox: Float = 0
+        var oy: Float = 0
         var size: Float = 2
         var seed: Float = 0
         var looseness: Float = 0
@@ -28,6 +29,14 @@ final class ParticleNumberView: UIView {
     private var lastTime: CFTimeInterval = 0
     private var time: Float = 0
     private var bitmap: CGContext?
+
+    /// 字形中心（相对屏幕中心）。手一动，它就追过去
+    private var anchorX: Float = 0
+    private var anchorY: Float = 0
+    private var targetX: Float = 0
+    private var targetY: Float = 0
+    private var anchored = false
+    private var digitSide: Float = 0
 
     private let neon = UIColor(red: 0.45, green: 1.0, blue: 0.85, alpha: 1)
 
@@ -53,6 +62,11 @@ final class ParticleNumberView: UIView {
 
     private var halfH: Float {
         Float(max(1, bounds.height)) * 0.5
+    }
+
+    /// 数字字形的字号（沿用原来的取法）
+    private var sideForBounds: Float {
+        Float(min(bounds.height * 0.66, bounds.width * 1.24))
     }
 
     // MARK: - 初始化
@@ -103,7 +117,16 @@ final class ParticleNumberView: UIView {
         let outline = outlinePoints(for: value)
         guard !outline.isEmpty else { return }
 
-        let side = Float(min(bounds.height * 0.66, bounds.width * 1.24))
+        digitSide = sideForBounds
+        clampTarget()
+
+        // 第一次拿到手的位置就直接落位，后面全靠弹簧自己追
+        if !anchored {
+            anchorX = targetX
+            anchorY = targetY
+            anchored = true
+        }
+
         let shuffled = outline.shuffled()
 
         for i in particles.indices {
@@ -111,10 +134,60 @@ final class ParticleNumberView: UIView {
             // 先向外炸一下，再收拢，重组感更强
             particles[i].vx += Float.random(in: -180...180)
             particles[i].vy += Float.random(in: -180...180)
-            particles[i].tx = Float(point.x) * side
-            particles[i].ty = -Float(point.y) * side
+            particles[i].ox = Float(point.x)
+            particles[i].oy = -Float(point.y)
             particles[i].attracted = true
         }
+    }
+
+    /// 手掌中心，Vision 归一化坐标（左下角原点）。传 nil 表示这一帧没看到手：保留上次位置，不炸开
+    func setHandCenter(_ p: CGPoint?) {
+        guard let p = p else { return }
+        let w = Float(max(1, bounds.width))
+        let h = Float(max(1, bounds.height))
+
+        // 前置摄像头是"照镜子"的，x 翻一下才符合直觉：手往右移，数字往右移
+        let sx = Float(1 - p.x)
+        let sy = Float(1 - p.y)
+
+        targetX = (sx - 0.5) * w
+        targetY = (sy - 0.5) * h
+        clampTarget()
+
+        if !anchored {
+            anchorX = targetX
+            anchorY = targetY
+            anchored = true
+        }
+    }
+
+    /// 别让字形跑出屏幕：按字形半径留边
+    private func clampTarget() {
+        let w = Float(max(1, bounds.width))
+        let h = Float(max(1, bounds.height))
+        let margin = digitSide * 0.6 + 8
+        let mx = max(0, w * 0.5 - margin)
+        let my = max(0, h * 0.5 - margin)
+        targetX = min(mx, max(-mx, targetX))
+        targetY = min(my, max(-my, targetY))
+    }
+
+    /// 从 21 个关节点里取手掌中心（手腕 + 四个掌指关节的平均），比取指尖稳
+    private func handleHand(_ points: [CGPoint]) {
+        var sumX: CGFloat = 0
+        var sumY: CGFloat = 0
+        var n: CGFloat = 0
+
+        for index in [0, 5, 9, 13, 17] where index < points.count {
+            let p = points[index]
+            if p.x < 0 || p.y < 0 { continue }
+            sumX += p.x
+            sumY += p.y
+            n += 1
+        }
+
+        guard n > 0 else { return }
+        setHandCenter(CGPoint(x: sumX / n, y: sumY / n))
     }
 
     // MARK: - 生命周期
@@ -124,7 +197,12 @@ final class ParticleNumberView: UIView {
         if window == nil {
             link?.invalidate()
             link = nil
+            HandTracker.shared.onPoints = nil
             return
+        }
+
+        HandTracker.shared.onPoints = { [weak self] points in
+            self?.handleHand(points)
         }
         guard link == nil else { return }
         let display = CADisplayLink(target: self, selector: #selector(tick(_:)))
@@ -138,6 +216,10 @@ final class ParticleNumberView: UIView {
         super.layoutSubviews()
         makeBitmap()
         reseedIfNeeded()
+        if digit >= 0 {
+            digitSide = sideForBounds
+            clampTarget()
+        }
     }
 
     private func makeBitmap() {
@@ -177,14 +259,21 @@ final class ParticleNumberView: UIView {
         let hh = halfH - 4
         let damping: Float = 6.2
 
+        // 字形中心平滑追手：手抖不会直接传给粒子，但手一动它会跟过去
+        let follow = min(1, dt * 9)
+        anchorX += (targetX - anchorX) * follow
+        anchorY += (targetY - anchorY) * follow
+
+        let side = digitSide
+
         for i in particles.indices {
             var p = particles[i]
 
             if p.attracted {
                 // 松散的粒子不完全归位，形成"毛边"，看起来更乱更活
                 let wobble = p.looseness * 26
-                let tx = p.tx + sin(time * 1.7 + p.seed) * wobble
-                let ty = p.ty + cos(time * 1.4 + p.seed * 1.3) * wobble
+                let tx = anchorX + p.ox * side + sin(time * 1.7 + p.seed) * wobble
+                let ty = anchorY + p.oy * side + cos(time * 1.4 + p.seed * 1.3) * wobble
 
                 let pull: Float = 26 - p.looseness * 14
                 p.vx += (tx - p.x) * pull * dt

@@ -14,6 +14,7 @@ struct ContentView: View {
 
     @ObservedObject private var tracker = HandTracker.shared
     @State private var displayed = -1
+    @State private var hideWork: DispatchWorkItem?
 
     var body: some View {
         ZStack {
@@ -27,7 +28,15 @@ struct ContentView: View {
             tracker.start()
         }
         .onChange(of: tracker.fingerCount) { value in
-            displayed = value
+            hideWork?.cancel()
+            if value >= 0 {
+                displayed = value
+            } else {
+                // 手短暂出画（放下、抖一下）不要立刻炸开，留 0.7 秒宽限
+                let work = DispatchWorkItem { displayed = -1 }
+                hideWork = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.7, execute: work)
+            }
         }
     }
 }
