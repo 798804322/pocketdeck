@@ -13,6 +13,9 @@ final class ParticleNumberView: UIView {
         /// 字形上的归一化偏移（-1~1）；真正目标 = 跟手的中心 + 偏移 × 字号
         var ox: Float = 0
         var oy: Float = 0
+        /// 光球模式下每颗粒子在圆盘里的角度和半径比例
+        var orbA: Float = 0
+        var orbR: Float = 0
         var size: Float = 2
         var seed: Float = 0
         var looseness: Float = 0
@@ -37,6 +40,10 @@ final class ParticleNumberView: UIView {
     private var targetY: Float = 0
     private var anchored = false
     private var digitSide: Float = 0
+
+    /// 握拳：粒子收成一团亮球
+    private var orbMode = false
+    private var orbRadius: Float = 0
 
     private let neon = UIColor(red: 0.45, green: 1.0, blue: 0.85, alpha: 1)
 
@@ -67,6 +74,11 @@ final class ParticleNumberView: UIView {
     /// 数字字形的字号（沿用原来的取法）
     private var sideForBounds: Float {
         Float(min(bounds.height * 0.66, bounds.width * 1.24))
+    }
+
+    /// 亮球半径
+    private var orbRadiusForBounds: Float {
+        Float(min(bounds.width, bounds.height)) * 0.11
     }
 
     // MARK: - 初始化
@@ -138,6 +150,30 @@ final class ParticleNumberView: UIView {
             particles[i].oy = -Float(point.y)
             particles[i].attracted = true
         }
+    }
+
+    /// 握拳：所有粒子吸到掌心缩成一个会呼吸的亮球。传 false 会让它们回到字形（或散开）
+    func setOrb(_ on: Bool) {
+        guard on != orbMode else { return }
+        orbMode = on
+        orbRadius = orbRadiusForBounds
+
+        if on {
+            for i in particles.indices {
+                // 圆盘里均匀撒点：半径取平方根才是均匀分布，否则全挤在圆心
+                particles[i].orbA = Float.random(in: 0...(2 * Float.pi))
+                particles[i].orbR = Float.random(in: 0...1).squareRoot()
+                particles[i].vx += Float.random(in: -140...140)
+                particles[i].vy += Float.random(in: -140...140)
+                particles[i].attracted = true
+            }
+        } else if digit < 0 {
+            // 既没有数字也没有球：回到散开状态
+            for i in particles.indices {
+                particles[i].attracted = false
+            }
+        }
+        // digit >= 0 时不用管：目标会自动切回字形，粒子自己飞回去
     }
 
     /// 手掌中心，Vision 归一化坐标（左下角原点）。传 nil 表示这一帧没看到手：保留上次位置，不炸开
@@ -220,6 +256,7 @@ final class ParticleNumberView: UIView {
             digitSide = sideForBounds
             clampTarget()
         }
+        orbRadius = orbRadiusForBounds
     }
 
     private func makeBitmap() {
@@ -270,25 +307,55 @@ final class ParticleNumberView: UIView {
             var p = particles[i]
 
             if p.attracted {
-                // 松散的粒子不完全归位，形成"毛边"，看起来更乱更活
-                let wobble = p.looseness * 26
-                let tx = anchorX + p.ox * side + sin(time * 1.7 + p.seed) * wobble
-                let ty = anchorY + p.oy * side + cos(time * 1.4 + p.seed * 1.3) * wobble
+                let tx: Float
+                let ty: Float
+                let pull: Float
+                let jitter: Float
+                let drag: Float
 
-                let pull: Float = 26 - p.looseness * 14
+                if orbMode {
+                    // 握拳：全部吸到掌心，缩成一个会转的球
+                    let radius = orbRadius * (0.3 + p.orbR * 0.7)
+                    let spin = p.orbA + time * 1.6
+                    tx = anchorX + cos(spin) * radius
+                    ty = anchorY + sin(spin) * radius
+                    pull = 110
+                    jitter = 6
+                    drag = 12
+                } else {
+                    // 数字：松散的粒子不完全归位，形成"毛边"，看起来更乱更活
+                    let wobble = p.looseness * 26
+                    tx = anchorX + p.ox * side + sin(time * 1.7 + p.seed) * wobble
+                    ty = anchorY + p.oy * side + cos(time * 1.4 + p.seed * 1.3) * wobble
+                    pull = 26 - p.looseness * 14
+                    jitter = 22
+                    drag = damping
+                }
+
                 p.vx += (tx - p.x) * pull * dt
                 p.vy += (ty - p.y) * pull * dt
 
-                p.vx += sin(time * 3.1 + p.seed * 2) * 22 * dt * (0.4 + p.looseness)
-                p.vy += cos(time * 2.7 + p.seed) * 22 * dt * (0.4 + p.looseness)
+                p.vx += sin(time * 3.1 + p.seed * 2) * jitter * dt * (0.4 + p.looseness)
+                p.vy += cos(time * 2.7 + p.seed) * jitter * dt * (0.4 + p.looseness)
 
-                p.vx *= (1 - damping * dt)
-                p.vy *= (1 - damping * dt)
+                p.vx *= (1 - drag * dt)
+                p.vy *= (1 - drag * dt)
             } else {
-                p.vx += sin(time * 0.7 + p.seed) * 60 * dt
-                p.vy += cos(time * 0.6 + p.seed * 1.4) * 60 * dt
-                p.vx *= (1 - 0.9 * dt)
-                p.vy *= (1 - 0.9 * dt)
+                // 没识别到手：每颗粒子有自己的漂移方向 + 两层不同频率的湍流，越飘越散
+                let driftX = sin(p.seed * 7.3)
+                let driftY = cos(p.seed * 5.9)
+
+                let f1 = sin(time * (0.8 + p.looseness * 0.9) + p.seed)
+                let f2 = cos(time * (2.4 + p.looseness * 1.8) + p.seed * 2.1)
+                let g1 = cos(time * (0.7 + p.looseness * 0.8) + p.seed * 1.7)
+                let g2 = sin(time * (2.1 + p.looseness * 1.5) + p.seed * 3.1)
+
+                p.vx += (f1 * 130 + f2 * 55 + driftX * 45) * dt
+                p.vy += (g1 * 130 + g2 * 55 + driftY * 45) * dt
+
+                // 阻尼从 0.9 降到 0.55：飘得更远、停不下来
+                p.vx *= (1 - 0.55 * dt)
+                p.vy *= (1 - 0.55 * dt)
             }
 
             p.x += p.vx * dt
@@ -317,18 +384,43 @@ final class ParticleNumberView: UIView {
 
         ctx.setBlendMode(.plusLighter)
 
+        // 握拳时先铺一层会呼吸的光晕，粒子压上去才像"大亮点"
+        if orbMode {
+            let center = CGPoint(x: cx + CGFloat(anchorX), y: cy + CGFloat(anchorY))
+            let pulse = CGFloat(1 + 0.08 * sin(time * 3.4))
+            let radius = CGFloat(orbRadius) * 2.4 * pulse
+            let colors = [neon.withAlphaComponent(0.5).cgColor,
+                          neon.withAlphaComponent(0).cgColor] as CFArray
+            if let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                         colors: colors,
+                                         locations: [0, 1]) {
+                ctx.drawRadialGradient(gradient,
+                                       startCenter: center,
+                                       startRadius: 0,
+                                       endCenter: center,
+                                       endRadius: radius,
+                                       options: [])
+            }
+        }
+
         for p in particles {
             let x = cx + CGFloat(p.x)
             let y = cy + CGFloat(p.y)
-            let s = CGFloat(p.size)
-            let alpha: CGFloat = p.attracted ? 0.95 : 0.5
+            let base = CGFloat(p.size)
 
             if p.attracted {
-                ctx.setFillColor(neon.withAlphaComponent(alpha).cgColor)
+                let size = base * (orbMode ? CGFloat(1.3 + p.looseness * 0.9) : 1)
+                ctx.setFillColor(neon.withAlphaComponent(orbMode ? 1 : 0.95).cgColor)
+                ctx.fillEllipse(in: CGRect(x: x - size / 2, y: y - size / 2, width: size, height: size))
             } else {
+                // 散开状态：大小差得更开、每颗自己闪，看起来更杂
+                let size = base * CGFloat(0.55 + p.looseness * 1.35)
+                let twinkle = abs(sin(time * (0.6 + p.looseness * 1.3) + p.seed))
+                let alpha = CGFloat(0.12 + 0.40 * twinkle)
+
                 ctx.setFillColor(UIColor(red: 0.28, green: 0.82, blue: 0.72, alpha: alpha).cgColor)
+                ctx.fillEllipse(in: CGRect(x: x - size / 2, y: y - size / 2, width: size, height: size))
             }
-            ctx.fillEllipse(in: CGRect(x: x - s / 2, y: y - s / 2, width: s, height: s))
         }
 
         ctx.setBlendMode(.normal)
@@ -465,12 +557,14 @@ final class ParticleNumberView: UIView {
 
 struct ParticleNumber: UIViewRepresentable {
     let digit: Int
+    let orb: Bool
 
     func makeUIView(context: Context) -> ParticleNumberView {
         ParticleNumberView()
     }
 
     func updateUIView(_ uiView: ParticleNumberView, context: Context) {
+        uiView.setOrb(orb)
         uiView.setDigit(digit)
     }
 }

@@ -68,6 +68,9 @@ final class HandTracker: NSObject, ObservableObject {
     private var lastStable = -1
     private var stableCounter = 0
 
+    /// 手在画面里小于这个尺寸（离得太远）就当作没看到，避免瞎猜
+    private let minHandScale: CGFloat = 0.06
+
     private override init() {
         super.init()
     }
@@ -169,12 +172,30 @@ extension HandTracker: AVCaptureVideoDataOutputSampleBufferDelegate {
             }
         }
 
+        // 手太小（离得太远）时关节噪声比手指还大，直接不认，比猜错干净
+        let palm = palmScale(points)
+        if palm > 0 && palm < minHandScale {
+            publish(points: nil, count: -1)
+            return
+        }
+
         let count = countFingers(recognized)
         publish(points: points, count: count)
     }
 
+    /// 腕到中指掌指关节的距离，当"手有多大"的尺子
+    private func palmScale(_ points: [CGPoint]) -> CGFloat {
+        guard points.count > 9 else { return 0 }
+        let wrist = points[0]
+        let mcp = points[9]
+        guard wrist.x >= 0, wrist.y >= 0, mcp.x >= 0, mcp.y >= 0 else { return 0 }
+        let dx = wrist.x - mcp.x
+        let dy = wrist.y - mcp.y
+        return sqrt(dx * dx + dy * dy)
+    }
+
     private func publish(points: [CGPoint]?, count: Int) {
-        // 防抖：连续 3 帧结果一致才更新
+        // 防抖：连续 4 帧结果一致才更新
         if count == lastStable {
             stableCounter += 1
         } else {
@@ -182,7 +203,7 @@ extension HandTracker: AVCaptureVideoDataOutputSampleBufferDelegate {
             stableCounter = 1
         }
 
-        let stable = stableCounter >= 3 ? count : nil
+        let stable = stableCounter >= 4 ? count : nil
 
         DispatchQueue.main.async {
             if let points {
@@ -198,7 +219,7 @@ extension HandTracker: AVCaptureVideoDataOutputSampleBufferDelegate {
 
     private func countFingers(_ points: [VNHumanHandPoseObservation.JointName: VNRecognizedPoint]) -> Int {
         func location(_ name: VNHumanHandPoseObservation.JointName) -> CGPoint? {
-            guard let point = points[name], point.confidence > 0.25 else { return nil }
+            guard let point = points[name], point.confidence > 0.28 else { return nil }
             return point.location
         }
 
@@ -208,27 +229,77 @@ extension HandTracker: AVCaptureVideoDataOutputSampleBufferDelegate {
             return sqrt(dx * dx + dy * dy)
         }
 
+        /// 三点夹角，顶点是 b，返回 0~180
+        func angle(_ a: CGPoint, _ b: CGPoint, _ c: CGPoint) -> CGFloat {
+            let v1x = Double(a.x - b.x), v1y = Double(a.y - b.y)
+            let v2x = Double(c.x - b.x), v2y = Double(c.y - b.y)
+            let l1 = (v1x * v1x + v1y * v1y).squareRoot()
+            let l2 = (v2x * v2x + v2y * v2y).squareRoot()
+            guard l1 > 0.0001, l2 > 0.0001 else { return 0 }
+            let cosv = max(-1.0, min(1.0, (v1x * v2x + v1y * v2y) / (l1 * l2)))
+            return CGFloat(acos(cosv) * 180 / Double.pi)
+        }
+
         guard let wrist = location(.wrist) else { return -1 }
+
+        // 手掌尺寸：腕到掌指关节的距离。所有阈值都按它归一化，
+        // 手离得远、手变小时不会被关节噪声放大
+        guard let scaleRef = location(.middleMCP) ?? location(.indexMCP) ?? location(.ringMCP) else { return -1 }
+        let scale = distance(wrist, scaleRef)
+        guard scale > 0.01 else { return -1 }
+
+        // 手越小（离得越远）噪声占比越高，阈值收紧一点
+        let strictness: CGFloat = scale < 0.15 ? 0.02 : 0
 
         var count = 0
 
-        let fingers: [(VNHumanHandPoseObservation.JointName, VNHumanHandPoseObservation.JointName)] = [
-            (.indexTip, .indexPIP),
-            (.middleTip, .middlePIP),
-            (.ringTip, .ringPIP),
-            (.littleTip, .littlePIP)
+        let fingers: [(VNHumanHandPoseObservation.JointName, VNHumanHandPoseObservation.JointName,
+                       VNHumanHandPoseObservation.JointName, VNHumanHandPoseObservation.JointName)] = [
+            (.indexMCP, .indexPIP, .indexDIP, .indexTip),
+            (.middleMCP, .middlePIP, .middleDIP, .middleTip),
+            (.ringMCP, .ringPIP, .ringDIP, .ringTip),
+            (.littleMCP, .littlePIP, .littleDIP, .littleTip)
         ]
 
-        for (tip, pip) in fingers {
-            guard let t = location(tip), let m = location(pip) else { continue }
-            if distance(wrist, t) > distance(wrist, m) * 1.22 {
-                count += 1
+        for (mcpName, pipName, dipName, tipName) in fingers {
+            guard let mcp = location(mcpName), let pip = location(pipName),
+                  let tip = location(tipName) else { continue }
+
+            // DIP 缺失时退回三点判定，别因为少一个关节就把整根手指丢掉
+            let chain: CGFloat
+            let jointAngle: CGFloat
+            if let dip = location(dipName) {
+                chain = distance(mcp, pip) + distance(pip, dip) + distance(dip, tip)
+                jointAngle = angle(mcp, pip, dip)
+            } else {
+                chain = distance(mcp, pip) + distance(pip, tip)
+                jointAngle = angle(mcp, pip, tip)
             }
+            guard chain > 0.001 else { continue }
+
+            // 伸直度：直线距离 / 折线长度。伸直≈1，弯着≈0.6~0.8
+            let straightness = distance(mcp, tip) / chain
+
+            // 老条件保留、和新条件取交集：宁可少算，不要多算
+            let fartherOut = distance(wrist, tip) > distance(wrist, pip) * 1.22
+            let isStraight = straightness > (0.90 + strictness) && jointAngle > 145
+
+            if fartherOut && isStraight { count += 1 }
         }
 
-        if let thumbTip = location(.thumbTip), let thumbIP = location(.thumbIP) {
-            if distance(wrist, thumbTip) > distance(wrist, thumbIP) * 1.18 {
-                count += 1
+        // 拇指单独判：剪刀手时它最容易被误算成第三根
+        if let cmc = location(.thumbCMC), let mp = location(.thumbMP),
+           let ip = location(.thumbIP), let tip = location(.thumbTip) {
+            let chain = distance(cmc, mp) + distance(mp, ip) + distance(ip, tip)
+            if chain > 0.001 {
+                let straightness = distance(cmc, tip) / chain
+                let jointAngle = angle(mp, ip, tip)
+                // 还要真的伸到手掌外面，握拳/放松时不算
+                let outward = distance(wrist, tip) > distance(wrist, scaleRef) * 1.10
+
+                if straightness > (0.93 + strictness) && jointAngle > 150 && outward {
+                    count += 1
+                }
             }
         }
 
