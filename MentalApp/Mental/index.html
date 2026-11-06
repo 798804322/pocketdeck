@@ -13,17 +13,17 @@ input{-webkit-user-select:auto;user-select:auto;-webkit-touch-callout:auto}
 body{
 background:#08080f;color:#e6e6f2;
 font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
-overflow-x:hidden;position:relative;min-height:100vh;-webkit-font-smoothing:antialiased;
+overflow:hidden;position:relative;height:100vh;height:100dvh;-webkit-font-smoothing:antialiased;
 }
 #stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.9}
 .glow{position:fixed;border-radius:50%;filter:blur(80px);z-index:0;pointer-events:none;opacity:.35}
 .g1{width:340px;height:340px;background:#6d3bff;top:-120px;left:-100px}
 .g2{width:300px;height:300px;background:#00d4c8;bottom:-140px;right:-100px;opacity:.22}
-.wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;padding:0 20px;min-height:100vh;display:flex;flex-direction:column}
-.screen{display:none}
-.screen.on{display:block;animation:fadeUp .55s cubic-bezier(.22,1,.36,1)}
+.wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden}
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;padding:0 18px;padding-top:calc(env(safe-area-inset-top) + 10px);padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
+.screen.on{display:flex;animation:fadeUp .5s cubic-bezier(.22,1,.36,1)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-.home{flex:1;display:flex;flex-direction:column;justify-content:center;padding:60px 0 80px;text-align:center;min-height:100vh}
+.home{flex:1;display:flex;flex-direction:column;justify-content:center;text-align:center;padding-bottom:16px}
 .badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:2px;color:#9d8cff;border:1px solid rgba(157,140,255,.28);padding:6px 14px;border-radius:100px;margin:0 auto 26px}
 .badge i{width:5px;height:5px;border-radius:50%;background:#00ffc8;box-shadow:0 0 8px #00ffc8;animation:blink 1.6s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
@@ -45,7 +45,7 @@ background-size:200% 100%;transition:.3s;font-family:inherit}
 .btn:active{transform:scale(.98)}
 .btn:hover{background-position:100% 0}
 .tip{font-size:11px;color:#4a4a5e;margin-top:20px;line-height:1.9}
-.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center}
+.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
 .orb{width:110px;height:110px;position:relative;margin-bottom:34px}
 .orb::before,.orb::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid rgba(157,140,255,.5);animation:pulse 2.2s ease-out infinite}
 .orb::after{animation-delay:1.1s}
@@ -55,35 +55,36 @@ background-size:200% 100%;transition:.3s;font-family:inherit}
 .loadtxt{font-size:13px;color:#9d8cff;letter-spacing:2px;height:20px}
 .bar{width:180px;height:2px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:22px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6d3bff,#5ff0dd);transition:width .3s linear}
-.result{padding:26px 0 60px}
-.rhead{text-align:center;margin-bottom:22px}
-.rhead .rid{font-size:11px;color:#5b5b73;letter-spacing:1.5px;margin-bottom:8px}
-.rhead .rname{font-size:26px;font-weight:800;
+.result{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.rhead{text-align:center;margin-bottom:10px;flex-shrink:0}
+.rhead .rid{font-size:10px;color:#5b5b73;letter-spacing:1.2px;margin-bottom:5px}
+.rhead .rname{font-size:20px;font-weight:800;line-height:1.3;
 background:linear-gradient(135deg,#fff,#b49bff);
 -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#cards{flex:1;display:flex;flex-direction:column;justify-content:center;gap:7px;overflow:hidden;min-height:0}
 .card{background:linear-gradient(160deg,rgba(157,140,255,.09),rgba(255,255,255,.02));
-border:1px solid rgba(157,140,255,.16);border-radius:16px;
-padding:16px 17px;margin-bottom:12px;opacity:0;transform:translateY(14px);backdrop-filter:blur(8px)}
-.card.show{animation:cardIn .5s cubic-bezier(.22,1,.36,1) forwards}
+border:1px solid rgba(157,140,255,.16);border-radius:13px;
+padding:10px 13px;opacity:0;transform:translateY(12px);backdrop-filter:blur(8px);flex-shrink:0}
+.card.show{animation:cardIn .42s cubic-bezier(.22,1,.36,1) forwards}
 @keyframes cardIn{to{opacity:1;transform:translateY(0)}}
-.ctitle{font-size:11px;color:#8b7bd8;letter-spacing:3px;margin-bottom:11px;display:flex;align-items:center;gap:7px}
-.ctitle::before{content:"";width:3px;height:11px;border-radius:2px;background:linear-gradient(#a48cff,#5ff0dd)}
-.ctext{font-size:15px;line-height:1.75;color:#e0dff0;font-weight:500}
+.ctitle{font-size:10px;color:#8b7bd8;letter-spacing:2.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ctitle::before{content:"";width:3px;height:10px;border-radius:2px;background:linear-gradient(#a48cff,#5ff0dd)}
+.ctext{font-size:14px;line-height:1.5;color:#e0dff0;font-weight:500}
 .ctext em{font-style:normal;color:#5ff0dd}
-.muted{font-size:13px;color:#8f8fa8;line-height:1.8;margin-top:7px}
-.row{display:flex;gap:9px;font-size:14px;line-height:1.75;margin-bottom:6px}
+.muted{font-size:12px;color:#8f8fa8;line-height:1.5;margin-top:4px}
+.row{display:flex;gap:8px;font-size:13px;line-height:1.55;margin-bottom:3px}
 .row:last-child{margin-bottom:0}
-.k{color:#7c7c94;flex-shrink:0;font-size:14px}
+.k{color:#7c7c94;flex-shrink:0;font-size:13px}
 .vgood{color:#5ff0dd}
 .vbad{color:#ff7a9c}
-.lucky{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
-.lk{background:rgba(255,255,255,.035);border:1px solid rgba(157,140,255,.12);border-radius:11px;padding:11px 12px;text-align:center}
-.lk span{display:block;font-size:10px;color:#6e6e88;margin-bottom:5px;letter-spacing:1px}
-.lk b{font-size:15px;color:#c9b8ff;font-weight:700}
-.foot{margin-top:26px}
-.btn2{width:100%;height:50px;border-radius:13px;border:1px solid rgba(157,140,255,.35);background:transparent;color:#b49bff;font-size:14px;letter-spacing:2px;cursor:pointer;font-family:inherit;transition:.25s}
+.lucky{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:3px}
+.lk{background:rgba(255,255,255,.035);border:1px solid rgba(157,140,255,.12);border-radius:8px;padding:6px 3px;text-align:center;overflow:hidden}
+.lk span{display:block;font-size:9px;color:#6e6e88;margin-bottom:3px;letter-spacing:.3px}
+.lk b{font-size:11px;color:#c9b8ff;font-weight:700;white-space:nowrap}
+.foot{margin-top:9px;flex-shrink:0}
+.btn2{width:100%;height:42px;border-radius:12px;border:1px solid rgba(157,140,255,.35);background:transparent;color:#b49bff;font-size:13px;letter-spacing:2px;cursor:pointer;font-family:inherit;transition:.25s}
 .btn2:active{background:rgba(157,140,255,.1)}
-.wm{text-align:center;font-size:10px;color:#3a3a4c;letter-spacing:1px;margin-top:22px;line-height:1.9}
+.wm{text-align:center;font-size:9px;color:#3a3a4c;letter-spacing:.5px;margin-top:7px;line-height:1.5;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -178,9 +179,9 @@ function buildReport(name){
   var state = pick(POOL.state);
   var color = pick(POOL.color);
   var obj = pick(POOL.obj);
-  var notes = pickN(POOL.note, 2, rnd);
-  var goods = pickN(POOL.good, 3, rnd);
-  var bads = pickN(POOL.bad, 3, rnd);
+  var notes = pickN(POOL.note, 1, rnd);
+  var goods = pickN(POOL.good, 2, rnd);
+  var bads = pickN(POOL.bad, 2, rnd);
 
   var loveA = pick(POOL.loveAnimal);
   var loveAct = pick(POOL.loveAction);
@@ -212,7 +213,6 @@ function buildReport(name){
       '<div class="card"><div class="ctitle">性别底色</div>' +
         '<div class="ctext">你是一个正在经历<em>' + state + '</em>的<em>' + color + obj + '</em></div>' +
         '<div class="muted">— ' + notes[0] + '</div>' +
-        '<div class="muted">— ' + notes[1] + '</div>' +
       '</div>' +
       '<div class="card"><div class="ctitle">今日宜忌</div>' +
         '<div class="row"><span class="k">宜</span><span class="vgood">' + goods.join('、') + '</span></div>' +
@@ -221,7 +221,6 @@ function buildReport(name){
       '<div class="card"><div class="ctitle">感情运</div>' +
         '<div class="ctext">你的灵魂伴侣是一只正在<em>' + loveAct + '</em>的<em>' + loveA + '</em></div>' +
         '<div class="muted">— 你们会在' + loveSc + '相遇</div>' +
-        '<div class="muted">— ' + loveEd + '</div>' +
       '</div>' +
       '<div class="card"><div class="ctitle">事业运</div>' +
         '<div class="ctext">你上辈子是一只正在<em>' + carAct + '</em>的<em>' + carA + '</em></div>' +
@@ -230,7 +229,6 @@ function buildReport(name){
       '<div class="card"><div class="ctitle">健康运</div>' +
         '<div class="ctext">建议你多<em>' + hm.join('</em>、多<em>') + '</em></div>' +
         '<div class="muted">— 少' + hl.join('，少') + '</div>' +
-        '<div class="muted">— 你的身体需要的不是更多的焦虑</div>' +
       '</div>' +
       '<div class="card"><div class="ctitle">幸运参数</div>' +
         '<div class="lucky">' +
@@ -291,10 +289,31 @@ function renderResult(){
   var cards = box.querySelectorAll('.card');
   for(var i=0;i<cards.length;i++){
     (function(el, idx){
-      setTimeout(function(){ el.classList.add('show'); }, 120 * idx + 60);
+      setTimeout(function(){ el.classList.add('show'); }, 85 * idx + 50);
     })(cards[i], i);
   }
+  setTimeout(fitCards, 85 * cards.length + 520);
 }
+
+function fitCards(){
+  var box = document.getElementById('cards');
+  if(!box) return;
+  box.style.transform = 'none';
+  var availH = box.clientHeight;
+  var needH = box.scrollHeight;
+  if(availH > 0 && needH > availH + 1){
+    var s = Math.max(0.66, (availH - 2) / needH);
+    box.style.transform = 'scale(' + s.toFixed(3) + ')';
+    box.style.transformOrigin = 'center center';
+  }
+}
+
+window.addEventListener('resize', function(){
+  if(document.getElementById('s-result').classList.contains('on')){ setTimeout(fitCards, 60); }
+});
+window.addEventListener('orientationchange', function(){
+  if(document.getElementById('s-result').classList.contains('on')){ setTimeout(fitCards, 220); }
+});
 
 document.getElementById('startBtn').addEventListener('click', startCheck);
 document.getElementById('nameInput').addEventListener('keydown', function(e){

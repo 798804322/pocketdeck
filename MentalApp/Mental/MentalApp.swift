@@ -24,8 +24,11 @@ struct WebContainer: UIViewRepresentable {
         webView.scrollView.backgroundColor = bg
         webView.scrollView.bounces = false
         webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
         webView.scrollView.showsVerticalScrollIndicator = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+        // 彻底禁止上下滑动：滚动能力关闭，页面内容固定在一屏内
+        webView.scrollView.isScrollEnabled = false
         webView.allowsBackForwardNavigationGestures = false
 
         let bundle = Bundle.main
