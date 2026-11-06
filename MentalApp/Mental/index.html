@@ -20,6 +20,375 @@ overflow:hidden;position:relative;height:100vh;height:100dvh;-webkit-font-smooth
 .g1{width:340px;height:340px;background:#6d3bff;top:-120px;left:-100px}
 .g2{width:300px;height:300px;background:#00d4c8;bottom:-140px;right:-100px;opacity:.22}
 .wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden}
+.screen{position:absolute;top:0;left:0;right:0;bottom:0;display:none !important;flex-direction:column;padding:0 18px;padding-top:max(calc(env(safe-area-inset-top) + 10px),20px);padding-bottom:max(calc(env(safe-area-inset-bottom) + 10px),18px)}
+.screen.on{display:flex !important;animation:fadeUp .5s cubic-bezier(.22,1,.36,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+.home{flex:1;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding-bottom:16px}
+.badge{display:inline-flex;align-items:center;gap:6px;font-size:11px;letter-spacing:2px;color:#9d8cff;border:1px solid rgba(157,140,255,.28);padding:6px 14px;border-radius:100px;margin:0 auto 26px}
+.badge i{width:5px;height:5px;border-radius:50%;background:#00ffc8;box-shadow:0 0 8px #00ffc8;animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+h1{font-size:34px;line-height:1.28;font-weight:800;letter-spacing:-.5px;margin-bottom:14px;
+background:linear-gradient(135deg,#fff 10%,#b49bff 55%,#5ff0dd 95%);
+-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:13px;color:#7c7c94;line-height:1.75;margin-bottom:38px}
+.inputbox{position:relative;margin-bottom:14px}
+input{width:100%;height:56px;background:rgba(255,255,255,.04);
+border:1px solid rgba(157,140,255,.25);border-radius:14px;
+color:#fff;font-size:16px;text-align:center;letter-spacing:1px;
+outline:none;transition:.25s;font-family:inherit}
+input::placeholder{color:#4e4e63;letter-spacing:.5px}
+input:focus{border-color:rgba(157,140,255,.7);background:rgba(157,140,255,.07);box-shadow:0 0 0 4px rgba(157,140,255,.1)}
+.btn{width:100%;height:56px;border:none;border-radius:14px;cursor:pointer;
+font-size:16px;font-weight:700;letter-spacing:2px;color:#0a0a12;
+background:linear-gradient(100deg,#a48cff,#5ff0dd 60%,#a48cff);
+background-size:200% 100%;transition:.3s;font-family:inherit}
+.btn:active{transform:scale(.98)}
+.btn:hover{background-position:100% 0}
+.tip{font-size:11px;color:#4a4a5e;margin-top:20px;line-height:1.9}
+.loading{flex:1;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.orb{width:110px;height:110px;position:relative;margin-bottom:34px}
+.orb::before,.orb::after{content:"";position:absolute;inset:0;border-radius:50%;border:1px solid rgba(157,140,255,.5);animation:pulse 2.2s ease-out infinite}
+.orb::after{animation-delay:1.1s}
+@keyframes pulse{0%{transform:scale(.5);opacity:1}100%{transform:scale(1.5);opacity:0}}
+.core{position:absolute;inset:30%;border-radius:50%;background:radial-gradient(circle at 35% 30%,#c9b8ff,#6d3bff 60%,#1a0a4a);box-shadow:0 0 40px rgba(109,59,255,.8);animation:breathe 2.6s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+.loadtxt{font-size:13px;color:#9d8cff;letter-spacing:2px;height:20px}
+.bar{width:180px;height:2px;background:rgba(255,255,255,.08);border-radius:2px;margin-top:22px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#6d3bff,#5ff0dd);transition:width .3s linear}
+.result{flex:1;flex-direction:column;overflow:hidden;min-height:0}
+.rhead{text-align:center;margin-bottom:10px;flex-shrink:0}
+.rhead .rid{font-size:10px;color:#5b5b73;letter-spacing:1.2px;margin-bottom:5px}
+.rhead .rname{font-size:20px;font-weight:800;line-height:1.3;
+background:linear-gradient(135deg,#fff,#b49bff);
+-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+#cards{flex:1;display:flex;flex-direction:column;justify-content:center;gap:7px;overflow:hidden;min-height:0}
+.card{background:linear-gradient(160deg,rgba(157,140,255,.09),rgba(255,255,255,.02));
+border:1px solid rgba(157,140,255,.16);border-radius:13px;
+padding:10px 13px;opacity:0;transform:translateY(12px);backdrop-filter:blur(8px);flex-shrink:0}
+.card.show{animation:cardIn .42s cubic-bezier(.22,1,.36,1) forwards}
+@keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+.ctitle{font-size:10px;color:#8b7bd8;letter-spacing:2.5px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.ctitle::before{content:"";width:3px;height:10px;border-radius:2px;background:linear-gradient(#a48cff,#5ff0dd)}
+.ctext{font-size:14px;line-height:1.5;color:#e0dff0;font-weight:500}
+.ctext em{font-style:normal;color:#5ff0dd}
+.muted{font-size:12px;color:#8f8fa8;line-height:1.5;margin-top:4px}
+.row{display:flex;gap:8px;font-size:13px;line-height:1.55;margin-bottom:3px}
+.row:last-child{margin-bottom:0}
+.k{color:#7c7c94;flex-shrink:0;font-size:13px}
+.vgood{color:#5ff0dd}
+.vbad{color:#ff7a9c}
+.lucky{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:3px}
+.lk{background:rgba(255,255,255,.035);border:1px solid rgba(157,140,255,.12);border-radius:8px;padding:6px 3px;text-align:center;overflow:hidden}
+.lk span{display:block;font-size:9px;color:#6e6e88;margin-bottom:3px;letter-spacing:.3px}
+.lk b{font-size:11px;color:#c9b8ff;font-weight:700;white-space:nowrap}
+.foot{margin-top:9px;flex-shrink:0}
+.btn2{width:100%;height:42px;border-radius:12px;border:1px solid rgba(157,140,255,.35);background:transparent;color:#b49bff;font-size:13px;letter-spacing:2px;cursor:pointer;font-family:inherit;transition:.25s}
+.btn2:active{background:rgba(157,140,255,.1)}
+.wm{text-align:center;font-size:9px;color:#3a3a4c;letter-spacing:.5px;margin-top:7px;line-height:1.5;flex-shrink:0}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div class="glow g1"></div>
+<div class="glow g2"></div>
+<div class="wrap">
+  <div class="screen on home" id="s-home">
+    <div class="badge"><i></i>REVERSE FORTUNE · 反向命理</div>
+    <h1>你的精神状态<br>需要一个解释</h1>
+    <p class="sub">输入名字，系统将连接宇宙能量场<br>为你生成一份完全不可信的命理报告</p>
+    <div class="inputbox">
+      <input id="nameInput" type="text" placeholder="输入你的名字" maxlength="12" autocomplete="off">
+    </div>
+    <button class="btn" id="startBtn">开 始 检 测</button>
+    <p class="tip">纯属娱乐 · 结果基于名字固定生成<br>同一名字永远得到同一份报告</p>
+  </div>
+
+  <div class="screen loading" id="s-loading">
+    <div class="orb"><div class="core"></div></div>
+    <div class="loadtxt" id="loadtxt">正在连接宇宙能量场...</div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+
+  <div class="screen result" id="s-result">
+    <div class="rhead">
+      <div class="rid" id="rid"></div>
+      <div class="rname" id="rname"></div>
+    </div>
+    <div id="cards"></div>
+    <div class="foot">
+      <button class="btn2" id="againBtn">换 个 名 字 再 测</button>
+    </div>
+    <div class="wm">本报告由宇宙能量场随机生成<br>不具备任何参考价值 · 请勿当真</div>
+  </div>
+</div>
+
+<script>
+var POOL = {
+  state:['存在主义危机','量子叠加态','慢性拖延','周期性emo','薛定谔的斗志','间歇性社交牛逼症','精神内耗','莫名其妙的自信心','中年危机但没到中年','光合作用','深夜emo','赛博孤独症','信息过载','意义感缺失','周一恐惧症','轻度的不想上班','慢性清醒','社交电量耗尽'],
+  color:['蓝色','赛博紫','番茄红','雾霾灰','荧光绿','过期牛奶白','地铁线路黄','退烧贴蓝','雪花屏白','充电宝红','便利店灯光白','快递盒棕'],
+  obj:['方块','胶囊','递归函数','没拆的快递盒','加载到99%的进度条','只剩一格电的手机','找不到的充电器','半杯凉掉的奶茶','便利店的关东煮','地铁末班车','被折叠的购物小票','不知道密码的行李箱','贴在冰箱上的便利贴','一直没退的快递','只剩一颗的薄荷糖','忘记名字的歌单'],
+  note:['你总是觉得自己应该做点什么，但又不知道做什么','你的内心住着一只正在吃西瓜的企鹅','你会在深夜突然想起一件十年前的小事，然后失眠','你对世界的理解停留在大概吧这个层面','你相信努力会有回报，但你也相信猫会统治世界','你的社交电量只够支撑两次深度对话','你的人生格言是：先放着，等会儿再说','你曾经认真思考过要不要养一盆仙人掌，最后放弃了','你在人群中的存在感，约等于便利店的背景音乐','你已经很久没有完整看完一部电影了','你会为了一句没回的消息，脑补出三部曲','你的收藏夹里有三百多个以后再看','你对自己最大的误解是：明天会早起','你的情绪像地铁末班车，来得慢，走得快','你偶尔会在便利店里站很久，只为了决定买哪个饭团','你其实并不讨厌热闹，只是不知道手该放哪里','你能熟练地在任何场合扮演一个正常人','你把很多话咽回去了，然后忘记了它们本来是什么','你的疲惫不是因为做了很多事，而是因为想了很多事','你一直觉得自己还没开始，但其实已经走到一半了'],
+  good:['进行光合作用','背诵圆周率后三位','对着镜子说今天也是元气满满的一天','给冰箱里的食物起名字','假装自己是一棵树，站立五分钟','数一数天花板上到底有几个点','把手机倒过来看三分钟','用筷子夹起一颗米并许愿','给三年后的自己发一条消息','在电梯里假装不认识自己','认真吃完一顿不刷手机的饭','对路边的猫点头致意','把没洗的碗摞成一座塔','在深夜写下一句没人看得懂的话','给自己倒一杯温水并郑重地喝完','和陌生人聊三句天气','整理一个你从来不用整理的东西','在纸上画一个圆并把它涂满','把一件拖了三个月的小事做完','承认自己今天不想努力'],
+  bad:['思考宇宙的终极意义','在凌晨三点写代码','相信任何星座运势','试图向猫解释物理','深夜给前任发消息','计算自己的人生价值','在雨天想起某个人','用微波炉加热梦想','跟自己讲道理','把人生当成一场考试','反复检查一条已经发出的消息','在群里发完言再撤回','打开购物软件就看一眼','把闹钟设在七点然后按掉','向别人解释你为什么不结婚','认真回答你怎么还不找对象','在深夜打开前任的朋友圈','安慰自己说还来得及','跟算法比谁更懂你','在周五晚上制定周一计划'],
+  loveAnimal:['企鹅','水豚','柯基','橘猫','树懒','羊驼','海獭','刺猬','乌鸦','鲸鱼','柴犬','鸭嘴兽','水母','浣熊','长颈鹿','穿山甲'],
+  loveAction:['吃西瓜','思考宇宙','读资本论','学游泳','假装很忙','排队买奶茶','练习倒立','研究天气预报','背单词','看云','写诗','失眠','整理收藏夹','假装在等人'],
+  loveScene:['某个下雨的下午','便利店关东煮的货架前','地铁末班车的最后一节车厢','一家快要关门的奶茶店','凌晨两点的便利店','某个没有任何意义的星期三','电梯停在第7层的时候','一场你并不想去的聚会上','楼下那只猫常蹲的台阶','你在货架前纠结的那个瞬间','公司茶水间接热水的那三十秒','超市打折鸡蛋的队列里'],
+  loveEnd:['它会告诉你宇宙的终极答案：42','它会在三句话内让你破防','它会用一生的时间证明你不孤单','它会教你如何优雅地浪费时间','它会在某个瞬间突然消失，只留下一句大概吧','它会带着你绕很远的路，然后说这就是近道','它会把你的名字念错，但你不会纠正','它会在你最难的那天，安静地坐在旁边','它会告诉你，其实你一直都挺好的','它会把所有的道理都讲错，但你会觉得有道理','它会让你明白，等待本身就是答案','它会在第二天忘记这件事，而你会记很久'],
+  careerAnimal:['企鹅','水豚','柯基','树懒','海獭','刺猬','乌鸦','鲸鱼','柴犬','浣熊','长颈鹿','考拉','仓鼠','章鱼','穿山甲'],
+  careerAction:['思考宇宙','整理文件','排队','假装在忙','研究咖啡机','练习汇报','学习装懂','数天花板','背PPT','写周报','装订材料','发呆'],
+  careerTask:['做一些看似无用但很有意义的事','在某个领域成为那个虽然不懂但很认真的人','把一件小事重复做一万次','用三年时间证明一个没人问的问题','在无数个平凡的日子里保持体面','做一件所有人都觉得没必要的事','把算了改成再试一次','学会在正确的时候闭嘴','成为一个让同事放心的人','把一份枯燥的工作做出一点讲究','在不被看见的地方把事做对','成为一个说话算数的人'],
+  healthMore:['睡觉','喝水','走路','晒太阳','吃饭','出门','发呆','笑','伸懒腰','早点关灯','深呼吸','夸自己一句'],
+  healthLess:['做梦','解释','回头','刷手机','说话','内耗','思考','分析','比较','熬夜','自责','假装没事'],
+  luckyColor:['克莱因蓝','雾霾紫','落日橘','薄荷绿','水泥灰','奶油白','樱粉','柠檬黄','铁锈红','深海青','旧报纸黄','便利店白'],
+  luckyNum:['42','7','3.14159','112','996','07','11','888','404','9527','1024','0','13','520','233'],
+  luckyFood:['西瓜','关东煮','半糖奶茶','泡面','便利店饭团','冰美式','烤肠','小笼包','蛋炒饭','螺蛳粉','肉松面包','便利店布丁','炸鸡','白粥','一颗薄荷糖'],
+  luckyAnimal:['企鹅','水豚','橘猫','柯基','树懒','海獭','刺猬','乌鸦','鲸鱼','柴犬','水母','长颈鹿','仓鼠','浣熊','考拉']
+};
+
+var LOADTXT = ['正在连接宇宙能量场...','正在读取你的前世记忆...','正在与一只企鹅建立联系...','正在计算你的情绪pH值...','正在调取昨日梦境存档...','正在同步量子叠加态...','正在生成一份不太可信的报告...'];
+
+function hashStr(s){
+  var h = 2166136261;
+  for(var i=0;i<s.length;i++){
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+function mulberry32(a){
+  return function(){
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    var t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function pickN(arr, n, rnd){
+  var copy = arr.slice(), out = [];
+  for(var i=0;i<n && copy.length;i++){
+    out.push(copy.splice(Math.floor(rnd()*copy.length),1)[0]);
+  }
+  return out;
+}
+
+function buildReport(name){
+  var seed = hashStr(name);
+  var rnd = mulberry32(seed);
+  var pick = function(a){ return a[Math.floor(rnd()*a.length)]; };
+
+  var state = pick(POOL.state);
+  var color = pick(POOL.color);
+  var obj = pick(POOL.obj);
+  var notes = pickN(POOL.note, 1, rnd);
+  var goods = pickN(POOL.good, 2, rnd);
+  var bads = pickN(POOL.bad, 2, rnd);
+
+  var loveA = pick(POOL.loveAnimal);
+  var loveAct = pick(POOL.loveAction);
+  var loveSc = pick(POOL.loveScene);
+  var loveEd = pick(POOL.loveEnd);
+
+  var carA = pick(POOL.careerAnimal);
+  var carAct = pick(POOL.careerAction);
+  var carTask = pick(POOL.careerTask);
+
+  var hm = pickN(POOL.healthMore, 2, rnd);
+  var hl = pickN(POOL.healthLess, 2, rnd);
+
+  var lc = pick(POOL.luckyColor);
+  var ln = pick(POOL.luckyNum);
+  var lf = pick(POOL.luckyFood);
+  var la = pick(POOL.luckyAnimal);
+
+  var idNum = (seed % 9000 + 1000);
+  var idPrefix = name.length >= 2 ? name.charAt(0) + name.charAt(1) : name + 'X';
+
+  var d = new Date();
+  var dateStr = d.getFullYear() + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + ('0'+d.getDate()).slice(-2);
+
+  return {
+    id: '#' + idPrefix.toUpperCase() + '-' + idNum + '  |  ' + dateStr,
+    name: name,
+    html:
+      '<div class="card"><div class="ctitle">性别底色</div>' +
+        '<div class="ctext">你是一个正在经历<em>' + state + '</em>的<em>' + color + obj + '</em></div>' +
+        '<div class="muted">— ' + notes[0] + '</div>' +
+      '</div>' +
+      '<div class="card"><div class="ctitle">今日宜忌</div>' +
+        '<div class="row"><span class="k">宜</span><span class="vgood">' + goods.join('、') + '</span></div>' +
+        '<div class="row"><span class="k">忌</span><span class="vbad">' + bads.join('、') + '</span></div>' +
+      '</div>' +
+      '<div class="card"><div class="ctitle">感情运</div>' +
+        '<div class="ctext">你的灵魂伴侣是一只正在<em>' + loveAct + '</em>的<em>' + loveA + '</em></div>' +
+        '<div class="muted">— 你们会在' + loveSc + '相遇</div>' +
+      '</div>' +
+      '<div class="card"><div class="ctitle">事业运</div>' +
+        '<div class="ctext">你上辈子是一只正在<em>' + carAct + '</em>的<em>' + carA + '</em></div>' +
+        '<div class="muted">— 这辈子你注定要' + carTask + '</div>' +
+      '</div>' +
+      '<div class="card"><div class="ctitle">健康运</div>' +
+        '<div class="ctext">建议你多<em>' + hm.join('</em>、多<em>') + '</em></div>' +
+        '<div class="muted">— 少' + hl.join('，少') + '</div>' +
+      '</div>' +
+      '<div class="card"><div class="ctitle">幸运参数</div>' +
+        '<div class="lucky">' +
+          '<div class="lk"><span>幸运色</span><b>' + lc + '</b></div>' +
+          '<div class="lk"><span>幸运数字</span><b>' + ln + '</b></div>' +
+          '<div class="lk"><span>幸运食物</span><b>' + lf + '</b></div>' +
+          '<div class="lk"><span>幸运动物</span><b>' + la + '</b></div>' +
+        '</div>' +
+      '</div>'
+  };
+}
+
+var scenes = {
+  home: document.getElementById('s-home'),
+  loading: document.getElementById('s-loading'),
+  result: document.getElementById('s-result')
+};
+function show(key){
+  for(var k in scenes){ scenes[k].classList.remove('on'); }
+  scenes[key].classList.add('on');
+  window.scrollTo(0,0);
+}
+
+var pendingName = '';
+
+function startCheck(){
+  var v = document.getElementById('nameInput').value.trim();
+  if(!v){ v = '无名氏'; }
+  pendingName = v;
+  show('loading');
+
+  var txtEl = document.getElementById('loadtxt');
+  var barEl = document.getElementById('bar');
+  var i = 0, total = 7;
+  txtEl.textContent = LOADTXT[0];
+
+  var timer = setInterval(function(){
+    i++;
+    if(i < total){
+      txtEl.textContent = LOADTXT[i % LOADTXT.length];
+      barEl.style.width = (i/total*100) + '%';
+    } else {
+      clearInterval(timer);
+      barEl.style.width = '100%';
+      setTimeout(renderResult, 220);
+    }
+  }, 420);
+}
+
+function renderResult(){
+  var rep = buildReport(pendingName);
+  document.getElementById('rid').textContent = rep.id;
+  document.getElementById('rname').textContent = rep.name + ' 的 精 神 状 态 报 告';
+  var box = document.getElementById('cards');
+  box.innerHTML = rep.html;
+  show('result');
+
+  var cards = box.querySelectorAll('.card');
+  for(var i=0;i<cards.length;i++){
+    (function(el, idx){
+      setTimeout(function(){ el.classList.add('show'); }, 85 * idx + 50);
+    })(cards[i], i);
+  }
+  setTimeout(fitCards, 85 * cards.length + 520);
+}
+
+function fitCards(){
+  var box = document.getElementById('cards');
+  if(!box) return;
+  box.style.transform = 'none';
+  var availH = box.clientHeight;
+  var needH = box.scrollHeight;
+  if(availH > 0 && needH > availH + 1){
+    var s = Math.max(0.66, (availH - 2) / needH);
+    box.style.transform = 'scale(' + s.toFixed(3) + ')';
+    box.style.transformOrigin = 'center center';
+  }
+}
+
+window.addEventListener('resize', function(){
+  if(document.getElementById('s-result').classList.contains('on')){ setTimeout(fitCards, 60); }
+});
+window.addEventListener('orientationchange', function(){
+  if(document.getElementById('s-result').classList.contains('on')){ setTimeout(fitCards, 220); }
+});
+
+document.getElementById('startBtn').addEventListener('click', startCheck);
+document.getElementById('nameInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter'){ startCheck(); }
+});
+document.getElementById('againBtn').addEventListener('click', function(){
+  document.getElementById('nameInput').value = '';
+  show('home');
+  setTimeout(function(){ document.getElementById('nameInput').focus(); }, 120);
+});
+
+/* 星空背景 */
+(function(){
+  var cv = document.getElementById('stars');
+  var ctx = cv.getContext('2d');
+  var pts = [], W, H;
+  function resize(){
+    W = cv.width = window.innerWidth;
+    H = cv.height = window.innerHeight;
+    pts = [];
+    var count = Math.floor(W*H/9000);
+    for(var i=0;i<count;i++){
+      pts.push({
+        x: Math.random()*W,
+        y: Math.random()*H,
+        r: Math.random()*1.3 + .25,
+        a: Math.random()*.6 + .15,
+        s: Math.random()*.18 + .04,
+        p: Math.random()*Math.PI*2
+      });
+    }
+  }
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    for(var i=0;i<pts.length;i++){
+      var p = pts[i];
+      p.p += .015;
+      p.y -= p.s;
+      if(p.y < -2){ p.y = H + 2; p.x = Math.random()*W; }
+      var alpha = p.a * (0.65 + 0.35*Math.sin(p.p));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(190,180,255,' + alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  draw();
+})();
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#08080f">
+<title>宇宙精神状态检测中心</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;width:100%}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+input{-webkit-user-select:auto;user-select:auto;-webkit-touch-callout:auto}
+body{
+background:#08080f;color:#e6e6f2;
+font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+overflow:hidden;position:relative;height:100vh;height:100dvh;-webkit-font-smoothing:antialiased;
+}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.9}
+.glow{position:fixed;border-radius:50%;filter:blur(80px);z-index:0;pointer-events:none;opacity:.35}
+.g1{width:340px;height:340px;background:#6d3bff;top:-120px;left:-100px}
+.g2{width:300px;height:300px;background:#00d4c8;bottom:-140px;right:-100px;opacity:.22}
+.wrap{position:relative;z-index:2;max-width:560px;margin:0 auto;height:100vh;height:100dvh;overflow:hidden}
 .screen{position:absolute;top:0;left:0;right:0;bottom:0;display:none;flex-direction:column;padding:0 18px;padding-top:calc(env(safe-area-inset-top) + 10px);padding-bottom:calc(env(safe-area-inset-bottom) + 10px)}
 .screen.on{display:flex;animation:fadeUp .5s cubic-bezier(.22,1,.36,1)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
